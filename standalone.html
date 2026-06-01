@@ -5580,6 +5580,7 @@ function formatReply(results, person) {
                     audioChunks = [];
                     mediaRecorder.ondataavailable = function(e) { if (e.data.size > 0) audioChunks.push(e.data); };
                     mediaRecorder.start(100);
+                    isRecording = true;
                 })
                 .catch(function(err) {
                     stopRecordingCleanup();
@@ -5655,7 +5656,8 @@ function formatReply(results, person) {
         var payload = { query: text || '', person: currentPerson, history: chatHistory.slice(-10) };
 
         // Include image if present
-        if (currentImageData) {
+        var hasImage = !!currentImageData;
+        if (hasImage) {
             payload.image = currentImageData;
             // Clear image preview
             currentImageData = null;
@@ -5665,7 +5667,7 @@ function formatReply(results, person) {
 
         input.value = '';
         isWaiting = true;
-        var displayText = text || (currentImageData ? '[图片]' : '');
+        var displayText = text || (hasImage ? '[图片]' : '');
         addMessage(displayText || '[图片]', true);
         showTyping('思考中...');
 
