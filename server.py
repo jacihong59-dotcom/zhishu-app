@@ -215,18 +215,10 @@ def call_deepseek(system_prompt, user_query, history=None, image=''):
 
     # Build user message: text-only or multimodal (text + image)
     if image:
-        # DeepSeek V4 uses separate fields, not OpenAI's content array format
-        # Strip data URL prefix, send raw base64 as image_data field
-        if ',' in image:
-            image_b64 = image.split(',', 1)[1]
-        else:
-            image_b64 = image
-        user_msg = {'role': 'user', 'content': user_query or '请分析这张图片', 'image_data': image_b64}
-        messages.append(user_msg)
-        model = 'deepseek-v4-pro'
+        return None, "DeepSeek API暂时不支持图片识别，请使用文字描述"
     else:
         messages.append({'role': 'user', 'content': user_query})
-        model = 'deepseek-chat'
+        model = 'deepseek-chat' 
 
     try:
         resp = req.post(
@@ -335,8 +327,6 @@ class KnowledgeHandler(http.server.SimpleHTTPRequestHandler):
                 })
                 return
 
-            # RAG: search knowledge base for context (text only)
-            has_image = bool(image_data)
             if query:
                 results = search_knowledge(query, person=person, top_k=10)
                 context = build_persona_context(results, person)
