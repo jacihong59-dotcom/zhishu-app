@@ -198,8 +198,8 @@ def build_prompt(query, context, person):
     return system_prompt
 
 
-def call_deepseek(system_prompt, user_query, history=None):
-    """Call DeepSeek API with the given prompt and optional conversation history."""
+def call_deepseek(system_prompt, user_query, history=None, image=''):
+    """Call DeepSeek API with optional image support (V4 model)."""
     if not DEEPSEEK_API_KEY:
         return None, "服务器未配置 API Key，请联系管理员"
 
@@ -213,7 +213,19 @@ def call_deepseek(system_prompt, user_query, history=None):
             role = 'user' if msg.get('isUser') else 'assistant'
             messages.append({'role': role, 'content': msg.get('text', '')})
 
-    messages.append({'role': 'user', 'content': user_query})
+    # Build user message: text-only or multimodal (text + image)
+    if image:
+        # DeepSeek V4 supports OpenAI-compatible multimodal format
+        user_content = [{'type': 'text', 'text': user_query or '请分析这张图片'}]
+        user_content.append({
+            'type': 'image_url',
+            'image_url': {'url': image}  # image is already a base64 data URL
+        })
+        messages.append({'role': 'user', 'content': user_content})
+        model = 'deepseek-v4-pro'
+    else:
+        messages.append({'role': 'user', 'content': user_query})
+        model = 'deepseek-chat'
 
     try:
         resp = req.post(
@@ -223,13 +235,13 @@ def call_deepseek(system_prompt, user_query, history=None):
                 'Content-Type': 'application/json'
             },
             json={
-                'model': 'deepseek-chat',
+                'model': model,
                 'messages': messages,
                 'temperature': 0.85,
                 'max_tokens': 2048,
                 'stream': False
             },
-            timeout=30
+            timeout=60
         )
 
         if resp.status_code != 200:
@@ -297,20 +309,24 @@ class KnowledgeHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         elif self.path == '/api/chat-llm':
-            # LLM-powered endpoint
+            # LLM-powered endpoint (text + optional image)
             length = int(self.headers['Content-Length'])
             body = json.loads(self.rfile.read(length))
             query = body.get('query', '')
             person = body.get('person', '谢胜子')
             history = body.get('history', [])  # conversation history
+            image_data = body.get('image', '')  # base64 data URL
 
             if not DEEPSEEK_API_KEY:
-                # Fallback to local search if no API key
-                results = search_knowledge(query, person=person)
-                if person == '谢胜子':
-                    reply, refs = self._format_xie_shengzi(results)
+                # Fallback to local search if no API key (text only)
+                if query:
+                    results = search_knowledge(query, person=person)
+                    if person == '谢胜子':
+                        reply, refs = self._format_xie_shengzi(results)
+                    else:
+                        reply, refs = self._format_ququ(results)
                 else:
-                    reply, refs = self._format_ququ(results)
+                    reply, refs = '图片已收到，但未配置AI服务', []
                 self._send_json({
                     'reply': reply,
                     'references': refs,
@@ -318,13 +334,19 @@ class KnowledgeHandler(http.server.SimpleHTTPRequestHandler):
                 })
                 return
 
-            # RAG: search knowledge base for context
-            results = search_knowledge(query, person=person, top_k=10)
-            context = build_persona_context(results, person)
-            system_prompt = build_prompt(query, context, person)
+            # RAG: search knowledge base for context (text only)
+            has_image = bool(image_data)
+            if query:
+                results = search_knowledge(query, person=person, top_k=10)
+                context = build_persona_context(results, person)
+                system_prompt = build_prompt(query, context, person)
+            else:
+                results = []
+                context = ''
+                system_prompt = build_prompt('分析这张图片', context, person)
 
-            # Call DeepSeek
-            reply, error = call_deepseek(system_prompt, query, history=history)
+            # Call DeepSeek (with image support via V4 model if needed)
+            reply, error = call_deepseek(system_prompt, query, history=history, image=image_data)
 
             if error:
                 # Fallback to local formatting on error

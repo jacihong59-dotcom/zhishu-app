@@ -453,6 +453,37 @@
             50% { box-shadow: 0 0 0 8px rgba(255,68,68,0); }
         }
 
+        /* Image upload */
+        .img-btn {
+            width: 38px; height: 38px;
+            border: none; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; cursor: pointer;
+            background: #f0f0f0; color: #666;
+            flex-shrink: 0; transition: all 0.2s;
+        }
+        .img-btn:active { transform: scale(0.9); }
+        .img-preview {
+            display: none;
+            padding: 6px 14px 2px 14px;
+            background: white;
+            border-top: 1px solid var(--border);
+        }
+        .img-preview.active { display: flex; align-items: center; gap: 8px; }
+        .img-preview img {
+            max-height: 60px; max-width: 60px;
+            border-radius: 8px; object-fit: cover;
+            border: 1px solid var(--border);
+        }
+        .img-preview .img-name {
+            font-size: 12px; color: var(--text-light);
+            flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .img-preview .img-remove {
+            font-size: 18px; cursor: pointer; color: #999;
+            background: none; border: none; padding: 4px;
+        }
+
         /* Welcome message */
         .welcome-msg {
             text-align: center;
@@ -536,9 +567,18 @@
     </div>
 
     <div class="chat-input">
+        <button class="img-btn" id="img-btn" type="button">📎</button>
         <input type="text" id="message-input" placeholder="输入你的问题..." autocomplete="off">
         <button class="mic-btn" id="mic-btn" type="button">🎤</button>
         <button class="send-btn xie" id="send-btn" onclick="sendMessage()">➤</button>
+    </div>
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+
+    <!-- Image preview -->
+    <div class="img-preview" id="img-preview">
+        <img id="preview-img" src="" alt="preview">
+        <span class="img-name" id="preview-name"></span>
+        <button class="img-remove" id="preview-remove">✕</button>
     </div>
 
     <!-- Recording overlay -->
@@ -546,8 +586,7 @@
         <div class="rp-wave" id="rp-wave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
         <div class="rp-icon">🎤</div>
         <div class="rp-timer" id="rp-timer">00:00</div>
-        <div class="rp-hint" id="rp-hint">手指上滑取消</div>
-        <div class="rp-cancel-zone" id="rp-cancel-zone">↩ 松手取消</div>
+        <div class="rp-hint" id="rp-hint">点击发送按钮停止录音</div>
     </div>
 </div>
 
@@ -5444,189 +5483,155 @@ function formatReply(results, person) {
     }
 
     // ============================================================
-    // Voice Message (Press-and-Hold Recording)
+    // Voice & Image
     // ============================================================
     var mediaRecorder = null;
     var audioChunks = [];
     var recordingStartTime = 0;
     var recordingTimer = null;
     var isRecording = false;
-    var shouldCancel = false;
     var audioStream = null;
+    var currentImageData = null; // base64 of selected image
 
 
 
-    function startRecording() {
-        if (isRecording) return;
-        shouldCancel = false;
-        audioChunks = [];
+    // Tap-to-toggle voice recording
+    function toggleRecording() {
+        if (isRecording) {
+            // Stop recording
+            isRecording = false;
+            clearInterval(recordingTimer);
+            document.getElementById('recording-panel').classList.remove('active');
+            document.getElementById('mic-btn').classList.remove('recording');
+            document.getElementById('mic-btn').textContent = '🎤';
 
-        // Show recording panel
-        var panel = document.getElementById('recording-panel');
-        panel.classList.add('active');
-        document.getElementById('rp-hint').textContent = '手指上滑取消';
-        document.getElementById('rp-hint').className = 'rp-hint';
-        document.getElementById('rp-cancel-zone').classList.remove('active');
-        document.getElementById('rp-timer').textContent = '00:00';
-        document.getElementById('mic-btn').classList.add('recording');
-        document.getElementById('mic-btn').textContent = '⏺';
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            if (audioStream) {
+                audioStream.getTracks().forEach(function(t) { t.stop(); });
+                audioStream = null;
+            }
 
-        recordingStartTime = Date.now();
-        recordingTimer = setInterval(function() {
-            var elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
-            var m = String(Math.floor(elapsed / 60)).padStart(2, '0');
-            var s = String(elapsed % 60).padStart(2, '0');
-            document.getElementById('rp-timer').textContent = m + ':' + s;
-        }, 100);
+            var elapsed = (Date.now() - recordingStartTime) / 1000;
+            if (elapsed < 0.8 || audioChunks.length === 0) {
+                showMicHint('说话时间太短');
+                return;
+            }
 
-        // Request mic access and start recording via MediaRecorder
-        navigator.mediaDevices.getUserMedia({ audio: true })
-            .then(function(stream) {
-                audioStream = stream;
-                // Prefer webm/opus, fallback to whatever browser supports
-                var options = {};
-                if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-                    options = { mimeType: 'audio/webm;codecs=opus' };
-                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-                    options = { mimeType: 'audio/mp4' };
-                } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-                    options = { mimeType: 'audio/webm' };
-                }
-                mediaRecorder = new MediaRecorder(stream, options);
-                audioChunks = [];
-                mediaRecorder.ondataavailable = function(e) {
-                    if (e.data.size > 0) audioChunks.push(e.data);
-                };
-                mediaRecorder.start(100); // collect data every 100ms
-                isRecording = true;
-            })
-            .catch(function(err) {
-                stopRecording(true);
-                showMicHint('无法访问麦克风: ' + err.message);
-            });
+            showTyping('识别语音中...');
+            var audioBlob = new Blob(audioChunks, { type: mediaRecorder ? mediaRecorder.mimeType : 'audio/webm' });
+            var reader = new FileReader();
+            reader.onloadend = function() {
+                var base64Audio = reader.result.split(',')[1];
+                var historyForAPI = chatHistory.slice(-10);
+                fetch('/api/voice-chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        audio: base64Audio,
+                        mimeType: audioBlob.type,
+                        person: currentPerson,
+                        history: historyForAPI
+                    })
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    hideTyping();
+                    if (data.mode === 'error') {
+                        addMessage('🎤 语音识别失败: ' + (data.error || '未知错误'), false);
+                        return;
+                    }
+                    addMessage('🎤 ' + data.transcribed, true);
+                    addMessage(data.reply, false);
+                    if (data.references) addRefChips(data.references);
+                })
+                .catch(function() {
+                    hideTyping();
+                    addMessage('🎤 语音处理出错，请稍后再试', false);
+                });
+            };
+            reader.readAsDataURL(audioBlob);
+        } else {
+            // Start recording
+            if (isWaiting) return;
+            audioChunks = [];
+            document.getElementById('recording-panel').classList.add('active');
+            document.getElementById('rp-timer').textContent = '00:00';
+            document.getElementById('mic-btn').classList.add('recording');
+            document.getElementById('mic-btn').textContent = '⏹';
+
+            recordingStartTime = Date.now();
+            recordingTimer = setInterval(function() {
+                var elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+                var m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                var s = String(elapsed % 60).padStart(2, '0');
+                document.getElementById('rp-timer').textContent = m + ':' + s;
+            }, 100);
+
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(function(stream) {
+                    audioStream = stream;
+                    var options = {};
+                    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) options = { mimeType: 'audio/webm;codecs=opus' };
+                    else if (MediaRecorder.isTypeSupported('audio/mp4')) options = { mimeType: 'audio/mp4' };
+                    else if (MediaRecorder.isTypeSupported('audio/webm')) options = { mimeType: 'audio/webm' };
+                    mediaRecorder = new MediaRecorder(stream, options);
+                    audioChunks = [];
+                    mediaRecorder.ondataavailable = function(e) { if (e.data.size > 0) audioChunks.push(e.data); };
+                    mediaRecorder.start(100);
+                })
+                .catch(function(err) {
+                    stopRecordingCleanup();
+                    showMicHint('无法访问麦克风: ' + err.message);
+                });
+        }
     }
 
-    function stopRecording(cancelled) {
-        if (!isRecording && !cancelled) return;
+    function stopRecordingCleanup() {
         isRecording = false;
-
         clearInterval(recordingTimer);
         document.getElementById('recording-panel').classList.remove('active');
         document.getElementById('mic-btn').classList.remove('recording');
         document.getElementById('mic-btn').textContent = '🎤';
-
-        // Stop MediaRecorder first
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-            mediaRecorder.stop();
-        }
-        // Clean up stream
-        if (audioStream) {
-            audioStream.getTracks().forEach(function(t) { t.stop(); });
-            audioStream = null;
-        }
-
-        // Don't process if cancelled or too short or no data
-        if (cancelled || shouldCancel || audioChunks.length === 0) return;
-
-        var elapsed = (Date.now() - recordingStartTime) / 1000;
-        if (elapsed < 0.8) {
-            showMicHint('说话时间太短');
-            return;
-        }
-
-        // Show "transcribing" indicator
-        showTyping('识别语音中...');
-
-        // Combine chunks into a single blob
-        var audioBlob = new Blob(audioChunks, { type: mediaRecorder ? mediaRecorder.mimeType : 'audio/webm' });
-
-        // Convert to base64
-        var reader = new FileReader();
-        reader.onloadend = function() {
-            var base64Audio = reader.result.split(',')[1];
-            var mimeType = audioBlob.type;
-
-            // Send to server
-            var historyForAPI = chatHistory.slice(-10);
-            fetch('/api/voice-chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    audio: base64Audio,
-                    mimeType: mimeType,
-                    person: currentPerson,
-                    history: historyForAPI
-                })
-            })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                hideTyping();
-                if (data.mode === 'error') {
-                    addMessage('🎤 语音识别失败: ' + (data.error || '未知错误'), false);
-                    return;
-                }
-                addMessage('🎤 ' + data.transcribed, true);
-                addMessage(data.reply, false);
-                if (data.references) addRefChips(data.references);
-            })
-            .catch(function() {
-                hideTyping();
-                addMessage('🎤 语音处理出错，请稍后再试', false);
-            });
-        };
-        reader.readAsDataURL(audioBlob);
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+        if (audioStream) { audioStream.getTracks().forEach(function(t) { t.stop(); }); audioStream = null; }
     }
 
-    // Wire up press-and-hold mic button
-    (function() {
-        var micBtn = document.getElementById('mic-btn');
-        var panel = document.getElementById('recording-panel');
-        var startY = 0;
-        var isPressed = false;
+    // Image upload
+    function setupImageUpload() {
+        var btn = document.getElementById('img-btn');
+        var fileInput = document.getElementById('file-input');
+        var preview = document.getElementById('img-preview');
+        var previewImg = document.getElementById('preview-img');
+        var previewName = document.getElementById('preview-name');
+        var removeBtn = document.getElementById('preview-remove');
 
-        function onPointerDown(e) {
-            if (isWaiting) return;
-            isPressed = true;
-            startY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
-            startRecording();
-        }
+        btn.onclick = function() { fileInput.click(); };
+        fileInput.onchange = function() {
+            var file = fileInput.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onloadend = function() {
+                currentImageData = reader.result;
+                previewImg.src = currentImageData;
+                previewName.textContent = file.name;
+                preview.classList.add('active');
+            };
+            reader.readAsDataURL(file);
+        };
+        removeBtn.onclick = function() {
+            currentImageData = null;
+            preview.classList.remove('active');
+            fileInput.value = '';
+        };
+    }
 
-        function onPointerUp(e) {
-            if (!isPressed) return;
-            isPressed = false;
-            stopRecording(shouldCancel);
-        }
+    // Wire up mic button (tap to toggle recording)
+    document.getElementById('mic-btn').onclick = toggleRecording;
 
-        function onPointerMove(e) {
-            if (!isPressed) return;
-            var clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
-            var dy = startY - clientY;
-            var cancelZone = document.getElementById('rp-cancel-zone');
-            var hint = document.getElementById('rp-hint');
-            if (dy > 80) {
-                shouldCancel = true;
-                cancelZone.classList.add('active');
-                hint.textContent = '松手取消发送';
-                hint.className = 'rp-hint cancel';
-            } else {
-                shouldCancel = false;
-                cancelZone.classList.remove('active');
-                hint.textContent = '手指上滑取消';
-                hint.className = 'rp-hint';
-            }
-        }
-
-        // Mouse events (desktop)
-        micBtn.addEventListener('mousedown', onPointerDown);
-        micBtn.addEventListener('mouseup', onPointerUp);
-        micBtn.addEventListener('mouseleave', function() { if (isPressed) { isPressed = false; stopRecording(true); } });
-
-        // Touch events (mobile)
-        micBtn.addEventListener('touchstart', onPointerDown, { passive: true });
-        micBtn.addEventListener('touchend', onPointerUp);
-        micBtn.addEventListener('touchcancel', function() { if (isPressed) { isPressed = false; stopRecording(true); } });
-        document.addEventListener('touchmove', onPointerMove, { passive: true });
-    })();
+    // Wire up image upload
+    setupImageUpload();
 
     function showMicHint(msg) {
         var hint = document.getElementById('mic-hint');
@@ -5645,20 +5650,29 @@ function formatReply(results, person) {
     function sendMessage() {
         const input = document.getElementById('message-input');
         const text = input.value.trim();
-        if (!text || isWaiting) return;
+        if ((!text && !currentImageData) || isWaiting) return;
+
+        var payload = { query: text || '', person: currentPerson, history: chatHistory.slice(-10) };
+
+        // Include image if present
+        if (currentImageData) {
+            payload.image = currentImageData;
+            // Clear image preview
+            currentImageData = null;
+            document.getElementById('img-preview').classList.remove('active');
+            document.getElementById('file-input').value = '';
+        }
 
         input.value = '';
         isWaiting = true;
-        addMessage(text, true);
+        var displayText = text || (currentImageData ? '[图片]' : '');
+        addMessage(displayText || '[图片]', true);
         showTyping('思考中...');
 
-        // Try server-side LLM first, fall back to local search
-        // Send last 10 messages as conversation history for context
-        var historyForAPI = chatHistory.slice(-10);
         fetch('/api/chat-llm', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: text, person: currentPerson, history: historyForAPI })
+            body: JSON.stringify(payload)
         })
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -5668,15 +5682,21 @@ function formatReply(results, person) {
             isWaiting = false;
         })
         .catch(function() {
-            // Fallback: local search
-            setTimeout(function() {
-                const results = searchKnowledge(text, currentPerson, 5);
-                const formatted = formatReply(results, currentPerson);
+            // Fallback: local search (text only)
+            if (text) {
+                setTimeout(function() {
+                    const results = searchKnowledge(text, currentPerson, 5);
+                    const formatted = formatReply(results, currentPerson);
+                    hideTyping();
+                    addMessage(formatted.reply, false);
+                    addRefChips(formatted.references);
+                    isWaiting = false;
+                }, 500);
+            } else {
                 hideTyping();
-                addMessage(formatted.reply, false);
-                addRefChips(formatted.references);
+                addMessage('图片处理失败，请重试', false);
                 isWaiting = false;
-            }, 500);
+            }
         });
     }
 
