@@ -5298,33 +5298,39 @@ function formatReply(results, person) {
     // Voice Input
     // ============================================================
     function startVoiceInput() {
-        var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (SR) {
-            var micBtn = document.getElementById('mic-btn');
-            if (micBtn.classList.contains('recording')) return;
-            var recognition = new SR();
-            recognition.lang = 'zh-CN';
-            recognition.continuous = true;
-            recognition.interimResults = true;
-            micBtn.classList.add('recording');
-            micBtn.textContent = '⏺';
-            recognition.onresult = function(event) {
-                document.getElementById('message-input').value = event.results[0][0].transcript;
-            };
-            recognition.onerror = function() {
-                micBtn.classList.remove('recording');
-                micBtn.textContent = '🎤';
-                showMicHint('语音识别失败，请手动输入');
-            };
-            recognition.onend = function() {
-                micBtn.classList.remove('recording');
-                micBtn.textContent = '🎤';
-                var input = document.getElementById('message-input');
-                if (input.value.trim()) sendMessage();
-            };
-            try { recognition.start(); return; } catch(e) {}
+        // iOS detection - SpeechRecognition doesn't work on iOS Safari
+        var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        if (!isIOS) {
+            var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SR) {
+                var micBtn = document.getElementById('mic-btn');
+                if (micBtn.classList.contains('recording')) return;
+                var recognition = new SR();
+                recognition.lang = 'zh-CN';
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                micBtn.classList.add('recording');
+                micBtn.textContent = '⏺';
+                recognition.onresult = function(event) {
+                    document.getElementById('message-input').value = event.results[0][0].transcript;
+                };
+                recognition.onerror = function() {
+                    micBtn.classList.remove('recording');
+                    micBtn.textContent = '🎤';
+                    showMicHint('语音识别失败，请手动输入');
+                };
+                recognition.onend = function() {
+                    micBtn.classList.remove('recording');
+                    micBtn.textContent = '🎤';
+                    var input = document.getElementById('message-input');
+                    if (input.value.trim()) sendMessage();
+                };
+                try { recognition.start(); return; } catch(e) {}
+            }
         }
-        // iOS fallback: show hint then focus input for keyboard dictation
+        // iOS / unsupported fallback: keyboard dictation
         showMicHint('请点击键盘底部麦克风按钮 🎤 进行语音输入');
         var input = document.getElementById('message-input');
         input.focus();
