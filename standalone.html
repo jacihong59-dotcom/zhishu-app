@@ -1,0 +1,5402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>知识蒸馏 - 谢胜子 & 曲曲</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --xie-primary: #8B5E3C;
+            --xie-bg: #FDF8F3;
+            --xie-light: #F5EDE6;
+            --ququ-primary: #C43A3A;
+            --ququ-bg: #FDF5F5;
+            --ququ-light: #FCE8E8;
+            --text: #2D2D2D;
+            --text-light: #888;
+            --border: #E8E0D8;
+            --shadow: 0 2px 16px rgba(0,0,0,0.08);
+        }
+        html, body {
+            height: 100%;
+            font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #F5F0EB;
+            color: var(--text);
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* ===== SELECTION SCREEN ===== */
+        #selection-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 30px;
+            background: linear-gradient(180deg, #F5F0EB 0%, #EDE5DC 100%);
+        }
+        #selection-screen .logo-area {
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        #selection-screen .logo-area h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: 2px;
+        }
+        #selection-screen .logo-area p {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-top: 8px;
+        }
+        .character-card {
+            width: 100%;
+            max-width: 340px;
+            padding: 28px 24px;
+            margin-bottom: 18px;
+            border-radius: 20px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        .character-card:active { transform: scale(0.97); }
+        .character-card .emoji-badge {
+            font-size: 40px;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .character-card h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+        .character-card p { font-size: 13px; color: var(--text-light); line-height: 1.5; }
+        .character-card .tag {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            margin-top: 10px;
+        }
+        .card-xie { border-left: 5px solid var(--xie-primary); }
+        .card-xie .tag { background: var(--xie-light); color: var(--xie-primary); }
+        .card-ququ { border-left: 5px solid var(--ququ-primary); }
+        .card-ququ .tag { background: var(--ququ-light); color: var(--ququ-primary); }
+
+        /* ===== CHAT SCREEN ===== */
+        #chat-screen { display: none; height: 100%; flex-direction: column; }
+        #chat-screen.active { display: flex; }
+
+        /* Header */
+        .chat-header {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            background: white;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            position: relative;
+            z-index: 10;
+        }
+        .chat-header .back-btn {
+            width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            border: none; background: none; font-size: 22px;
+            cursor: pointer; border-radius: 50%;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        .chat-header .back-btn:active { background: #f0f0f0; }
+        .chat-header .avatar {
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            margin: 0 12px;
+            flex-shrink: 0;
+        }
+        .avatar-xie { background: var(--xie-light); }
+        .avatar-ququ { background: var(--ququ-light); }
+        .chat-header .info { flex: 1; }
+        .chat-header .info h3 { font-size: 16px; font-weight: 600; }
+        .chat-header .info p { font-size: 11px; color: var(--text-light); }
+        .chat-header .count-badge {
+            font-size: 11px;
+            color: var(--text-light);
+            padding: 4px 10px;
+            background: #f5f5f5;
+            border-radius: 12px;
+        }
+        .chat-header .clear-btn {
+            font-size: 11px;
+            color: #bbb;
+            margin-left: 6px;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 8px;
+            user-select: none;
+        }
+        .chat-header .clear-btn:hover { color: #e74c3c; background: #fff0f0; }
+
+        /* Messages */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .msg {
+            margin-bottom: 16px;
+            display: flex;
+            align-items: flex-start;
+            animation: fadeInUp 0.3s ease;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .msg.user { flex-direction: row-reverse; }
+        .msg .bubble {
+            max-width: 82%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 15px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .msg.ai .bubble {
+            background: white;
+            border-radius: 16px 16px 16px 4px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .msg.user .bubble {
+            background: var(--xie-primary);
+            color: white;
+            border-radius: 16px 16px 4px 16px;
+        }
+        .msg.user.ququ-mode .bubble {
+            background: var(--ququ-primary);
+        }
+        .msg .avatar-sm {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px;
+            margin: 0 8px;
+            flex-shrink: 0;
+        }
+        .msg.ai .avatar-sm { background: var(--xie-light); }
+        .msg.ai.ququ-mode .avatar-sm { background: var(--ququ-light); }
+
+        /* Reference chips */
+        .ref-chips {
+            display: flex; flex-wrap: wrap; gap: 4px;
+            margin-top: 8px;
+        }
+        .ref-chip {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            background: var(--xie-light);
+            color: var(--xie-primary);
+        }
+        .ref-chip.ququ-mode { background: var(--ququ-light); color: var(--ququ-primary); }
+
+        /* Typing indicator */
+        .typing {
+            display: flex;
+            align-items: center;
+            padding: 14px 20px;
+            margin-bottom: 12px;
+        }
+        .typing .dots {
+            display: flex; gap: 4px;
+        }
+        .typing .dots span {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #ccc;
+            animation: typingAnim 1.2s infinite;
+        }
+        .typing .dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing .dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typingAnim {
+            0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+            30% { opacity: 1; transform: scale(1.2); }
+        }
+
+        .bubble.thinking {
+            background: white;
+            color: #888;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+        .thinking-dots span {
+            animation: dotPulse 1.2s infinite;
+            font-size: 18px;
+            line-height: 1;
+            color: #aaa;
+        }
+        .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes dotPulse {
+            0%, 60%, 100% { opacity: 0.2; }
+            30% { opacity: 1; }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        /* Input area */
+        .chat-input {
+            display: flex;
+            align-items: center;
+            padding: 10px 14px;
+            background: white;
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+            gap: 8px;
+        }
+        .chat-input input {
+            flex: 1;
+            border: none;
+            outline: none;
+            padding: 10px 14px;
+            background: #F5F0EB;
+            border-radius: 24px;
+            font-size: 15px;
+            color: var(--text);
+            min-height: 42px;
+        }
+        .chat-input input::placeholder { color: #bbb; }
+        .chat-input .send-btn {
+            width: 42px; height: 42px;
+            border: none;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .chat-input .send-btn:active { transform: scale(0.9); }
+        .send-btn.xie { background: var(--xie-primary); color: white; }
+        .send-btn.ququ { background: var(--ququ-primary); color: white; }
+
+        .chat-input .mic-btn {
+            width: 38px; height: 38px;
+            border: none;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            background: #f0f0f0;
+            color: #666;
+        }
+        .chat-input .mic-btn:active { transform: scale(0.9); }
+        .chat-input .mic-btn.recording {
+            background: #ff4444;
+            color: white;
+            animation: micPulse 1s infinite;
+        }
+        @keyframes micPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255,68,68,0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(255,68,68,0); }
+        }
+
+        /* Welcome message */
+        .welcome-msg {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-light);
+        }
+        .welcome-msg .icon-big { font-size: 48px; display: block; margin-bottom: 12px; }
+        .welcome-msg h3 { font-size: 18px; color: var(--text); margin-bottom: 6px; }
+        .welcome-msg p { font-size: 13px; line-height: 1.6; }
+        .suggestion-chips {
+            display: flex; flex-wrap: wrap; justify-content: center;
+            gap: 8px; margin-top: 20px;
+        }
+        .suggestion-chips button {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: white;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .suggestion-chips button:active { background: #f0f0f0; }
+
+        /* Responsive */
+        @media (min-width: 600px) {
+            #chat-screen {
+                max-width: 420px;
+                margin: 0 auto;
+                border-left: 1px solid var(--border);
+                border-right: 1px solid var(--border);
+            }
+            #selection-screen .character-card { max-width: 380px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== SELECTION SCREEN ===== -->
+<div id="selection-screen">
+    <div class="logo-area">
+        <h1>知识蒸馏</h1>
+        <p>选择你的导师</p>
+    </div>
+
+    <div class="character-card card-xie" onclick="startChat('谢胜子')">
+        <span class="emoji-badge">📚</span>
+        <h2>谢胜子</h2>
+        <p>自媒体创业 · 个人IP · 平台策略<br>犀利拆解，框架式思考</p>
+        <span class="tag">结构化 · 方法论</span>
+    </div>
+
+    <div class="character-card card-ququ" onclick="startChat('曲曲')">
+        <span class="emoji-badge">🔥</span>
+        <h2>曲曲大女人</h2>
+        <p>两性关系 · 人性博弈 · 向上社交<br>直击灵魂，叫醒你</p>
+        <span class="tag">人间清醒 · 扎心真相</span>
+    </div>
+</div>
+
+<!-- ===== CHAT SCREEN ===== -->
+<div id="chat-screen">
+    <div class="chat-header">
+        <button class="back-btn" onclick="backToSelection()">‹</button>
+        <div class="avatar" id="header-avatar">📚</div>
+        <div class="info">
+            <h3 id="header-name">谢胜子</h3>
+            <p id="header-desc">自媒体创业 · 个人IP · 平台策略</p>
+        </div>
+        <span class="count-badge" id="kb-count">知识库</span>
+        <span class="clear-btn" id="clear-btn" onclick="clearChatHistory()">清空</span>
+    </div>
+
+    <div class="chat-messages" id="chat-messages">
+        <div class="welcome-msg" id="welcome-msg">
+            <span class="icon-big" id="welcome-icon">📚</span>
+            <h3 id="welcome-title">你好，我是谢胜子</h3>
+            <p id="welcome-text">把你的问题抛给我，我用方法论帮你拆解。<br>每条回复都基于我的课程知识体系。</p>
+            <div class="suggestion-chips" id="suggestion-chips"></div>
+        </div>
+    </div>
+
+    <div class="chat-input">
+        <input type="text" id="message-input" placeholder="输入你的问题..." autocomplete="off">
+        <button class="mic-btn" id="mic-btn" type="button" onclick="startVoiceInput()">🎤</button>
+        <button class="send-btn xie" id="send-btn" onclick="sendMessage()">➤</button>
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    // State
+    // ============================================================
+    let currentPerson = '谢胜子';
+    let isWaiting = false;
+    let isInitialized = false;
+    let chatHistory = [];  // {text, isUser} array, persisted to localStorage
+
+    // ============================================================
+    // Knowledge Base & Search Engine
+    // ============================================================
+
+// ============================================================
+// Inline Search Engine
+// ============================================================
+const KNOWLEDGE_BASE = {
+  "谢胜子": [
+    {
+      "person": "谢胜子",
+      "domain": "核心理论",
+      "heading": "总览",
+      "text": "name: 谢胜子核心理论\ndescription: 谢胜子自媒体创业、个人IP、赛道定位核心方法论\ntype: reference\noriginSessionId: 57a86349-feb0-46cf-8c91-901e91e94467",
+      "keywords": [
+        "理论",
+        "个人",
+        "谢胜子核心",
+        "心方法论",
+        "type",
+        "description",
+        "originSessionId",
+        "name",
+        "赛道定位核",
+        "reference",
+        "feb",
+        "体创业",
+        "谢胜子自媒",
+        "总览"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "核心理论",
+      "heading": "什么是个人IP",
+      "text": "- 个人IP不是网红，而是**个体在特定领域的专业势能积累**\n- IP = 认知差 + 表达力 + 信任感\n- 每个人都可以有IP，关键在于找到自己的**独特属性组合**\n- IP的本质是**降低交易成本**——用户因为信任你而直接付费",
+      "keywords": [
+        "付费",
+        "的本质是",
+        "势能积累",
+        "用户因为信",
+        "独特属性组",
+        "表达力",
+        "任你而直接",
+        "到自己的",
+        "个体在特定",
+        "认知差",
+        "什么是个人",
+        "个人",
+        "降低交易成",
+        "不是网红",
+        "以有",
+        "而是",
+        "每个人都可",
+        "领域的专业",
+        "关键在于找",
+        "信任感"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "核心理论",
+      "heading": "创作者经济",
+      "text": "- 创作者经济是个人IP的商业化表达\n- 个人IP是目的，自媒体创作是武器\n- 重点不是做\"号\"，而是做\"人\"\n- 粉丝数量≠IP价值，核心是**粉丝质量和信任深度**",
+      "keywords": [
+        "而是做",
+        "个人",
+        "信任深度",
+        "是个人",
+        "粉丝质量和",
+        "重点不是做",
+        "价值",
+        "创作者经济",
+        "核心是",
+        "是武器",
+        "自媒体创作",
+        "粉丝数量",
+        "是目的",
+        "的商业化表"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "核心理论",
+      "heading": "个人IP赋能个体势能(三层)",
+      "text": "1. **第一层**: 知名度——让更多人知道你\n2. **第二层**: 信任度——让认识你的人信任你\n3. **第三层**: 溢价能力——因为有IP，同样的服务可以收更高的价格",
+      "keywords": [
+        "让更多人知",
+        "个人",
+        "溢价能力",
+        "人信任你",
+        "道你",
+        "第三层",
+        "同样的服务",
+        "可以收更高",
+        "第二层",
+        "的价格",
+        "知名度",
+        "第一层",
+        "赋能个体势",
+        "因为有",
+        "信任度",
+        "三层",
+        "让认识你的"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "核心理论",
+      "heading": "个人IP的社交赋能",
+      "text": "- **博主社交圈**：博主之间一条私信就能认识，博主群体社交效率和精准度极高\n- **社交身份加持器**：自我介绍时说有个人IP/有粉丝，大家会觉得你值钱\n- **沟通效率提升**: 你持续输出内容，别人提前了解你，见面沟通效率极高\n- **表达复利效应**：你只需表达一次，别人可以反复看。你的表达会产生复利\n- **在社交中占据主动**：当你不断输出、吸引别人来看你，而不是你去了解别人时，你在社交中会占据一点优势",
+      "keywords": [
+        "博主群体社",
+        "解你",
+        "了解别人时",
+        "大家会觉得",
+        "看你",
+        "优势",
+        "持器",
+        "认识",
+        "社交身份加",
+        "你只需表达",
+        "而不是你去",
+        "当你不断输",
+        "说有个人",
+        "你持续输出",
+        "自我介绍时",
+        "沟通效率提",
+        "率极高",
+        "你值钱",
+        "产生复利",
+        "在社交中占",
+        "吸引别人来",
+        "你在社交中",
+        "会占据一点",
+        "别人可以反",
+        "个人",
+        "博主之间一",
+        "一次",
+        "博主社交圈",
+        "见面沟通效",
+        "有粉丝",
+        "表达复利效",
+        "复看",
+        "别人提前了",
+        "交效率和精",
+        "你的表达会",
+        "内容",
+        "条私信就能",
+        "据主动",
+        "准度极高",
+        "的社交赋能"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "核心理论",
+      "heading": "个人IP vs 自媒体号",
+      "text": "- 做号 = 追求流量、爆款、数据\n- 做IP = 追求影响力、信任、长期价值\n- 好的IP可以跨越平台，而号依附于平台\n- 最终目标：**让你这个人比你的内容更值钱**\n- **博主≠个人IP**：资讯类博主、剧情号粉丝多但商业价值低，因为用户follow的是信息不是你这个人\n- **个人IP的判断标准**：你考完CPA还会关注这个博主吗？会=他有IP，不会=他只是知识博主\n- **个人IP的核心**：内容越个人化、越让别处看不到，粉丝粘性越强，商业价值越高",
+      "keywords": [
+        "爆款",
+        "追求流量",
+        "个博主吗",
+        "做号",
+        "内容越个人",
+        "CPA",
+        "更值钱",
+        "是你这个人",
+        "的核心",
+        "好的",
+        "自媒体号",
+        "你考完",
+        "博主",
+        "不会",
+        "他有",
+        "值低",
+        "不到",
+        "让你这个人",
+        "追求影响力",
+        "信任",
+        "还会关注这",
+        "粉丝粘性越",
+        "个人",
+        "越让别处看",
+        "数据",
+        "剧情号粉丝",
+        "而号依附于",
+        "平台",
+        "最终目标",
+        "他只是知识",
+        "商业价值越",
+        "比你的内容",
+        "资讯类博主",
+        "因为用户",
+        "follow",
+        "可以跨越平",
+        "长期价值",
+        "的是信息不",
+        "多但商业价",
+        "的判断标准"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "核心理论",
+      "heading": "属性与赛道(六种属性分类)",
+      "text": "谢胜子将自媒体创作者的\"属性\"分为六大类：\n1. **虚派**: 讲认知、讲思维、讲格局（如曲曲）\n2. **实派**: 讲实操、讲方法、讲干货\n3. **深耕派**: 在一个领域长期深耕，成为专家\n4. **跳跃派**: 多领域交叉，跨界整合能力\n5. **雌雄竞派**: 把两性关系、情感作为切入点的内容\n6. **权钱名派**: 讲权力、财富、名声的运作逻辑",
+      "keywords": [
+        "如曲曲",
+        "讲权力",
+        "六种属性分",
+        "讲格局",
+        "成为专家",
+        "把两性关系",
+        "讲认知",
+        "属性",
+        "入点的内容",
+        "媒体创作者",
+        "名声的运作",
+        "讲思维",
+        "在一个领域",
+        "逻辑",
+        "虚派",
+        "深耕派",
+        "实派",
+        "谢胜子将自",
+        "分为六大类",
+        "雌雄竞派",
+        "财富",
+        "讲干货",
+        "属性与赛道",
+        "长期深耕",
+        "情感作为切",
+        "权钱名派",
+        "多领域交叉",
+        "讲方法",
+        "跳跃派",
+        "跨界整合能",
+        "讲实操"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "核心理论",
+      "heading": "如何找到自己的赛道（三步法）",
+      "text": "1. **向内看（自我剖析）**:\n   - 你过去10年花时间最多的事情是什么？\n   - 你的朋友最常向你请教什么？\n   - 你有什么\"理所当然但别人不会\"的技能或认知？\n   \n2. **向外看（市场验证）**:\n   - 这个赛道有没有成功案例？\n   - 用户付费意愿如何？\n   - 这个赛道天花板多高？\n\n3. **做匹配（锁定方向）**:\n   - 你的优势和市场需求之间的交集\n   - 要足够窄才能足够深\n   - 赛道要能支撑未来3-5年的持续输出",
+      "keywords": [
+        "己的赛道",
+        "什么",
+        "如何找到自",
+        "三步法",
+        "你的优势和",
+        "你有什么",
+        "间的交集",
+        "自我剖析",
+        "多的事情是",
+        "向外看",
+        "做匹配",
+        "能足够深",
+        "锁定方向",
+        "要足够窄才",
+        "用户付费意",
+        "愿如何",
+        "理所当然但",
+        "这个赛道有",
+        "的技能或认",
+        "花板多高",
+        "年花时间最",
+        "你过去",
+        "常向你请教",
+        "赛道要能支",
+        "别人不会",
+        "向内看",
+        "撑未来",
+        "没有成功案",
+        "市场验证",
+        "你的朋友最",
+        "市场需求之",
+        "年的持续输",
+        "这个赛道天"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "核心理论",
+      "heading": "赛道选择的AB测试法",
+      "text": "- Phase I: 先选一个方向试（B或A都可以）\n- Phase II: 跑一段时间后用数据验证\n- Phase III: 根据数据决定是深耕还是换方向\n- 关键：**不要在选择上花太多时间，先做再调**",
+      "keywords": [
+        "不要在选择",
+        "根据数据决",
+        "向试",
+        "后用数据验",
+        "测试法",
+        "Phase",
+        "先选一个方",
+        "关键",
+        "是换方向",
+        "赛道选择的",
+        "III",
+        "定是深耕还",
+        "跑一段时间",
+        "都可以",
+        "上花太多时",
+        "先做再调"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "核心理论",
+      "heading": "持续输出方向",
+      "text": "- 找不到持续输出方向 → 说明赛道太宽，要收窄\n- 持续输出的前提：这个方向有你永远说不完的话\n- 判断标准：如果没有流量，你还愿不愿意继续做这个内容？",
+      "keywords": [
+        "要收窄",
+        "你永远说不",
+        "个内容",
+        "你还愿不愿",
+        "说明赛道太",
+        "持续输出方",
+        "前提",
+        "这个方向有",
+        "意继续做这",
+        "持续输出的",
+        "找不到持续",
+        "完的话",
+        "如果没有流",
+        "输出方向",
+        "判断标准"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "核心理论",
+      "heading": "定位两步法",
+      "text": "1. **意识流穷举法**：写100个形容词/50句话/直接写30分钟，写到累时会无意识重复某类词，那就是你内心最想要的定位\n2. **他人评价法**：收集近关系/远关系/浅关系/深关系的评价，找重合集",
+      "keywords": [
+        "心最想要的",
+        "他人评价法",
+        "某类词",
+        "收集近关系",
+        "直接写",
+        "个形容词",
+        "意识流穷举",
+        "分钟",
+        "无意识重复",
+        "远关系",
+        "写到累时会",
+        "深关系的评",
+        "定位两步法",
+        "句话",
+        "找重合集",
+        "那就是你内",
+        "浅关系",
+        "定位"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "核心理论",
+      "heading": "精准定位要点",
+      "text": "- 找到精准的**\"小词\"**：不要用\"自信\"\"狼性\"这种大路词，要找别致的、小的入口\n  - 反例：\"我是一个自信的人\"——没有辨识度\n  - 正例：\"我是一个舌院属性很重的人\"——小众但精准\n- **不要贪心**：什么都要展示=什么都没有。敢于舍弃一些也能展示的东西\n- 品牌的本质是**重复**：\"语言的本质就是咒语，你说多了就会有人信。你说多了你真的就会成为那样的人\"\n- **系统化构建**：线上（照片/说话方式/文案）+ 线下（穿着/打扮/用品），每一个细节都要加强人设",
+      "keywords": [
+        "会有人信",
+        "每一个细节",
+        "这种大路词",
+        "敢于舍弃一",
+        "反例",
+        "小的入口",
+        "我是一个自",
+        "信的人",
+        "正例",
+        "线下",
+        "说话方式",
+        "找到精准的",
+        "没有辨识度",
+        "些也能展示",
+        "打扮",
+        "小众但精准",
+        "你说多了就",
+        "的东西",
+        "不要贪心",
+        "不要用",
+        "线上",
+        "穿着",
+        "小词",
+        "都要加强人",
+        "狼性",
+        "要找别致的",
+        "你说多了你",
+        "用品",
+        "我是一个舌",
+        "真的就会成",
+        "系统化构建",
+        "什么都没有",
+        "就是咒语",
+        "精准定位要",
+        "院属性很重",
+        "品牌的本质",
+        "文案",
+        "语言的本质",
+        "照片",
+        "为那样的人",
+        "什么都要展",
+        "自信",
+        "的人",
+        "重复"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "核心理论",
+      "heading": "四、个人风格四大维度",
+      "text": "1. **表达风格**: 犀利型/温和型/幽默型/理性型\n2. **视觉风格**: 精致型/自然型/专业型/生活型\n3. **内容深度**: 浅层认知/中阶方法/高阶思维\n4. **互动方式**: 单向输出/双向对话/社群共修",
+      "keywords": [
+        "单向输出",
+        "幽默型",
+        "专业型",
+        "自然型",
+        "个人风格四",
+        "视觉风格",
+        "互动方式",
+        "内容深度",
+        "高阶思维",
+        "生活型",
+        "大维度",
+        "理性型",
+        "中阶方法",
+        "表达风格",
+        "犀利型",
+        "温和型",
+        "精致型",
+        "社群共修",
+        "浅层认知",
+        "双向对话"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "核心理论",
+      "heading": "阅读体系",
+      "text": "- 主题阅读：一段时间内集中读同一主题的5-10本书\n- 输出倒逼输入：每读完一本书要能讲给别人听\n- 读书三遍法：粗读→精读→主题关联阅读",
+      "keywords": [
+        "一段时间内",
+        "集中读同一",
+        "读书三遍法",
+        "主题的",
+        "输出倒逼输",
+        "主题阅读",
+        "阅读体系",
+        "每读完一本",
+        "别人听",
+        "精读",
+        "主题关联阅",
+        "粗读",
+        "书要能讲给",
+        "本书"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "核心理论",
+      "heading": "写作体系",
+      "text": "- Artistic Writing（为自己写）: 日记、随笔、灵感记录\n- Professional Writing（为影响力写）: 公众号、小红书文章、课程内容\n- 写作是思考的副产品——你只有想清楚了才能写清楚",
+      "keywords": [
+        "清楚",
+        "灵感记录",
+        "为自己写",
+        "小红书文章",
+        "日记",
+        "为影响力写",
+        "写作是思考",
+        "的副产品",
+        "你只有想清",
+        "楚了才能写",
+        "写作体系",
+        "Artistic",
+        "Writing",
+        "随笔",
+        "课程内容",
+        "公众号",
+        "Professional"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "核心理论",
+      "heading": "认知体系",
+      "text": "- 50%结构化知识 + 30%实践反思 + 20%跨界连接\n- 认知提升的四个阶段：\n  1. 不知道自己不知道\n  2. 知道自己不知道\n  3. 知道自己知道\n  4. 不知道自己知道（内化）\n- 每隔一段时间复盘自己的认知迭代",
+      "keywords": [
+        "四个阶段",
+        "知道自己知",
+        "每隔一段时",
+        "认知体系",
+        "知道",
+        "跨界连接",
+        "的认知迭代",
+        "内化",
+        "实践反思",
+        "知道自己不",
+        "结构化知识",
+        "间复盘自己",
+        "不知道自己",
+        "不知道",
+        "认知提升的"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "总览",
+      "text": "name: 谢胜子平台策略\ndescription: 谢胜子自媒体各平台运营策略完整方法论\ntype: reference\noriginSessionId: 57a86349-feb0-46cf-8c91-901e91e94467",
+      "keywords": [
+        "谢胜子平台",
+        "方法论",
+        "type",
+        "体各平台运",
+        "description",
+        "originSessionId",
+        "总览",
+        "营策略完整",
+        "name",
+        "reference",
+        "feb",
+        "谢胜子自媒",
+        "策略"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "小红书定位",
+      "text": "- 小红书是一本**电子杂志**——图文为主，视频为辅\n- 用户心态：来小红书是\"逛\"不是\"刷\"\n- 适合人群：有审美、有品味、生活方式有亮点的人\n- 不适合：纯搞笑、纯娱乐内容",
+      "keywords": [
+        "适合人群",
+        "不是",
+        "图文为主",
+        "生活方式有",
+        "亮点的人",
+        "纯搞笑",
+        "小红书是一",
+        "不适合",
+        "小红书定位",
+        "视频为辅",
+        "电子杂志",
+        "纯娱乐内容",
+        "来小红书是",
+        "有审美",
+        "有品味",
+        "用户心态"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "小红书调性（三条核心认知）",
+      "text": "1. **全网最视觉化的平台**——女性用户多、精致内容多、种草属性强\n2. **全网最有视觉溢价的平台**——同样内容，视觉做得好可以大幅提升价值感\n3. **电子杂志本质**——需要像做杂志一样做小红书",
+      "keywords": [
+        "可以大幅提",
+        "升价值感",
+        "小红书调性",
+        "三条核心认",
+        "志一样做小",
+        "觉溢价的平",
+        "化的平台",
+        "精致内容多",
+        "电子杂志本",
+        "种草属性强",
+        "视觉做得好",
+        "全网最有视",
+        "需要像做杂",
+        "红书",
+        "女性用户多",
+        "全网最视觉",
+        "同样内容"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "视觉提升五维框架（五选三即可）",
+      "text": "1. IP本身的形象（长相、穿搭、化妆）\n2. 拍摄场景（是否敞亮、高级、有品味）\n3. 拍摄硬件（画质是否高清）\n4. 封面/页面的视觉配色和设计\n5. 视频的剪辑、配乐、转场、字幕\n\n**对比抖音**：同样一条视频，抖音更关注观点本身（因为前面可能是卖烧饼的大妈），小红书对妆容要求更高（因为前面全是精致小姐姐）",
+      "keywords": [
+        "化妆",
+        "转场",
+        "拍摄场景",
+        "能是卖烧饼",
+        "配色和设计",
+        "是精致小姐",
+        "字幕",
+        "同样一条视",
+        "抖音更关注",
+        "穿搭",
+        "因为前面可",
+        "是否敞亮",
+        "的大妈",
+        "维框架",
+        "因为前面全",
+        "长相",
+        "有品味",
+        "观点本身",
+        "拍摄硬件",
+        "对比抖音",
+        "五选三即可",
+        "画质是否高",
+        "视觉提升五",
+        "小红书对妆",
+        "视频的剪辑",
+        "高级",
+        "封面",
+        "容要求更高",
+        "本身的形象",
+        "配乐",
+        "页面的视觉"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "账号基础设置",
+      "text": "- **昵称**: 真实姓名+领域标签（如\"谢胜子|个人品牌\"）\n- **头像**: 专业但不刻板的个人照，建议半身照\n- **简介区**: 一句话说清你是谁+你能提供什么价值\n- **合集区**: 按主题整理笔记，让新粉快速了解你",
+      "keywords": [
+        "按主题整理",
+        "真实姓名",
+        "专业但不刻",
+        "笔记",
+        "合集区",
+        "你是谁",
+        "昵称",
+        "个人品牌",
+        "领域标签",
+        "么价值",
+        "你能提供什",
+        "简介区",
+        "谢胜子",
+        "了解你",
+        "板的个人照",
+        "头像",
+        "一句话说清",
+        "让新粉快速",
+        "账号基础设",
+        "建议半身照"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "封面设计（\"封面王中王\"）",
+      "text": "- **封面是小红书的命**！小红书是双栏全屏推流，用户一眼扫过七八条内容，封面不抓眼球连点进去的机会都没有\n- 封面决定**点击率**，点击率决定后续的点赞/收藏/评论→决定二次三次推流\n- 点击率低=要在封面和标题上下功夫，内容再好也没用\n- 封面也是个人主页占篇幅最多的视觉元素，整体封面风格成体系感很重要",
+      "keywords": [
+        "用户一眼扫",
+        "要在封面和",
+        "书的命",
+        "格成体系感",
+        "球连点进去",
+        "次推流",
+        "封面也是个",
+        "点击率",
+        "评论",
+        "没用",
+        "幅最多的视",
+        "点击率低",
+        "整体封面风",
+        "过七八条内",
+        "封面设计",
+        "内容再好也",
+        "收藏",
+        "封面不抓眼",
+        "人主页占篇",
+        "标题上下功",
+        "觉元素",
+        "封面是小红",
+        "封面决定",
+        "封面王中王",
+        "的机会都没",
+        "点击率决定",
+        "后续的点赞",
+        "小红书是双",
+        "决定二次三",
+        "栏全屏推流",
+        "很重要"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "封面实操技巧",
+      "text": "1. **图文笔记封面**：照片要高清、抢眼；封面文字和照片配色要和谐有设计感\n2. **视频笔记封面**：\n   - 建议用视频截图而非单独拍照（截图更有\"动起来的感觉\"，刺激点击）\n   - 也可以用拍摄当天穿同一身衣服拍的照片（更高清）\n   - 封面标题和视频标题不要重复，用不同表述方式扩大吸引力\n3. **封面拼图**：用视频中出现的场景/内容拼成一张图，展现视觉冲击力\n4. **封面文字**：可以加一些有引诱性的关键词去抓眼球\n5. **整体建议**：定期看优质杂志（Vogue/时尚芭莎/家人），从配色到标题到图文编排学习",
+      "keywords": [
+        "和谐有设计",
+        "视频标题不",
+        "从配色到标",
+        "引力",
+        "抢眼",
+        "视频笔记封",
+        "封面拼图",
+        "张图",
+        "封面文字和",
+        "截图更有",
+        "封面文字",
+        "动起来的感",
+        "摄当天穿同",
+        "封面标题和",
+        "Vogue",
+        "一身衣服拍",
+        "整体建议",
+        "定期看优质",
+        "照片要高清",
+        "家人",
+        "现的场景",
+        "也可以用拍",
+        "图文笔记封",
+        "杂志",
+        "展现视觉冲",
+        "的照片",
+        "用不同表述",
+        "刺激点击",
+        "排学习",
+        "独拍照",
+        "照片配色要",
+        "要重复",
+        "时尚芭莎",
+        "关键词去抓",
+        "截图而非单",
+        "更高清",
+        "用视频中出",
+        "封面实操技",
+        "内容拼成一",
+        "眼球",
+        "有引诱性的",
+        "击力",
+        "方式扩大吸",
+        "可以加一些",
+        "题到图文编",
+        "建议用视频"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "内容创作原则",
+      "text": "- **不说废话，直接给价值**\n- 标题要有\"结果感\"（如\"做对这3件事，XX翻倍\"）\n- 正文结构：观点→论据→案例→结论\n- 每条笔记都要有\"收藏价值\"——用户为什么要收藏？",
+      "keywords": [
+        "做对这",
+        "直接给价值",
+        "要有",
+        "要收藏",
+        "正文结构",
+        "翻倍",
+        "每条笔记都",
+        "内容创作原",
+        "结果感",
+        "论据",
+        "用户为什么",
+        "收藏价值",
+        "标题要有",
+        "件事",
+        "观点",
+        "案例",
+        "不说废话",
+        "结论"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "录视频的技术规范",
+      "text": "1. **光线**: Light is everything！自然光＞打光灯，下午四五点光线最佳\n2. **设备**: 手机摄像头够用，不用一开始买专业相机。需要：打光灯/台灯 + 三角架（多备几个）+ 收音设备\n3. **逐字稿 vs 提纲**：30条视频以内建议写逐字稿背下来，形成肌肉记忆后才用提纲\n4. **不要完美主义**：不要卡在开头录20遍！一条过→再录一遍→再录一遍→剪辑拼接最好的\n5. **镜头表现力三要素**：\n   - 眼神：先做到\"定\"（不四处看），再做到\"有神\"（带着思考的光芒）\n   - 表情控制：让淡淡的微笑变成开口说话时的肌肉记忆\n   - 声音：看到任何文字都能用\"讲话的语气\"说出来，而不是背诵感\n   - **心态**：自媒体是一场修行，即使视频没火，镜头表现力、口才、审美也提升了",
+      "keywords": [
+        "需要",
+        "口才",
+        "场修行",
+        "再录一遍",
+        "术规范",
+        "说话时的肌",
+        "够用",
+        "眼神",
+        "字都能用",
+        "收音设备",
+        "不要完美主",
+        "光线",
+        "Light",
+        "即使视频没",
+        "好的",
+        "审美也提升",
+        "自然光",
+        "不要卡在开",
+        "条视频以内",
+        "有神",
+        "光芒",
+        "不四处看",
+        "下午四五点",
+        "设备",
+        "镜头表现力",
+        "说出来",
+        "建议写逐字",
+        "自媒体是一",
+        "稿背下来",
+        "everything",
+        "先做到",
+        "肉记忆",
+        "逐字稿",
+        "表情控制",
+        "看到任何文",
+        "三角架",
+        "手机摄像头",
+        "讲话的语气",
+        "不用一开始",
+        "台灯",
+        "剪辑拼接最",
+        "让淡淡的微",
+        "形成肌肉记",
+        "买专业相机",
+        "笑变成开口",
+        "带着思考的",
+        "心态",
+        "而不是背诵",
+        "头录",
+        "再做到",
+        "忆后才用提",
+        "三要素",
+        "声音",
+        "光线最佳",
+        "多备几个",
+        "打光灯",
+        "提纲",
+        "录视频的技",
+        "一条过"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "爆款笔记密码",
+      "text": "1. **选题要有争议性/冲突感**（不是制造对立，而是有讨论空间）\n2. **标题要有信息增量**，不能是空洞的感叹\n3. **首图要扫一眼就懂**\n4. **正文要有逻辑层次**，用结构化的方式呈现\n5. **结尾要有互动引导**\n6. **发布时间**: 工作日晚上7-10点，周末上午10-12点",
+      "keywords": [
+        "方式呈现",
+        "息增量",
+        "辑层次",
+        "冲突感",
+        "首图要扫一",
+        "不能是空洞",
+        "标题要有信",
+        "的感叹",
+        "用结构化的",
+        "结尾要有互",
+        "发布时间",
+        "正文要有逻",
+        "工作日晚上",
+        "空间",
+        "议性",
+        "选题要有争",
+        "周末上午",
+        "爆款笔记密",
+        "动引导",
+        "不是制造对",
+        "眼就懂",
+        "而是有讨论"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "小红书推流机制",
+      "text": "- 小红书是\"双线推流\"：发现页+搜索页\n- 决定流量的关键指标：**点击率>完读率>收藏率>点赞率**\n- 收藏率比点赞率更重要——说明有\"长尾价值\"\n- 一篇笔记的流量周期比抖音长得多（可达数月）",
+      "keywords": [
+        "机制",
+        "可达数月",
+        "关键指标",
+        "小红书推流",
+        "决定流量的",
+        "点击率",
+        "流量周期比",
+        "抖音长得多",
+        "发现页",
+        "双线推流",
+        "收藏率",
+        "小红书是",
+        "收藏率比点",
+        "点赞率",
+        "赞率更重要",
+        "完读率",
+        "搜索页",
+        "说明有",
+        "一篇笔记的",
+        "长尾价值"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "直播策略",
+      "text": "- 小红书直播的核心不是卖货，是**建立信任**\n- 直播内容建议：答疑、连麦、分享认知\n- 人气秘诀：提前预告+直播间留人话术+福利钩子",
+      "keywords": [
+        "人气秘诀",
+        "直播内容建",
+        "连麦",
+        "建立信任",
+        "直播策略",
+        "福利钩子",
+        "的核心不是",
+        "小红书直播",
+        "卖货",
+        "直播间留人",
+        "提前预告",
+        "答疑",
+        "分享认知",
+        "话术"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "广告变现",
+      "text": "- 小红书广告报价参考：粉丝数×0.03~0.1（元/条）\n- 商业笔记要保持真实体验感，不能硬广\n- 广告太多会伤粉丝信任，控制广告比例≤20%",
+      "keywords": [
+        "验感",
+        "控制广告比",
+        "小红书广告",
+        "商业笔记要",
+        "不能硬广",
+        "广告太多会",
+        "伤粉丝信任",
+        "粉丝数",
+        "广告变现",
+        "保持真实体",
+        "报价参考"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "专栏课",
+      "text": "- 小红书适合卖**轻量级专栏课**（39-299元）\n- 优点：平台有流量扶持，交易闭环\n- 缺点：平台抽成较高，课程形式受限\n- 适合作为引流品，不适合做高价课",
+      "keywords": [
+        "平台抽成较",
+        "流品",
+        "缺点",
+        "课程形式受",
+        "轻量级专栏",
+        "扶持",
+        "交易闭环",
+        "价课",
+        "平台有流量",
+        "适合作为引",
+        "不适合做高",
+        "优点",
+        "专栏课",
+        "小红书适合"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "专栏课实操要点",
+      "text": "- **5分钟试听设计**：直播课当天的免费试听（随时进随时试听5分钟）是一个非常有效的转化设计\n- **不跳转优势**：课程链接可以直接挂在所有内容上，用户不用跳转到微信，减少数据折损\n- **货架期长**：专栏课位置在个人主页很显眼的位置，即使不推广也持续有自然走单\n- **定价阶梯**：平台引导的定价梯度是39/59/99/159/299，帮你建立知识付费产品框架\n- **申请专栏课的过程本身就是一次产品构建训练**：填写课程亮点、主题、人群，框架就有了",
+      "keywords": [
+        "识付费产品",
+        "试听",
+        "有效的转化",
+        "也持续有自",
+        "框架就有了",
+        "专栏课实操",
+        "然走单",
+        "用户不用跳",
+        "就是一次产",
+        "人群",
+        "是一个非常",
+        "很显眼的位",
+        "主题",
+        "设计",
+        "货架期长",
+        "分钟试听设",
+        "不跳转优势",
+        "框架",
+        "定价梯度是",
+        "申请专栏课",
+        "的免费试听",
+        "直播课当天",
+        "专栏课位置",
+        "即使不推广",
+        "定价阶梯",
+        "以直接挂在",
+        "要点",
+        "所有内容上",
+        "的过程本身",
+        "平台引导的",
+        "帮你建立知",
+        "填写课程亮",
+        "分钟",
+        "转到微信",
+        "减少数据折",
+        "随时进随时",
+        "课程链接可",
+        "品构建训练",
+        "在个人主页"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "公众号定位",
+      "text": "- 公众号不是\"昨日黄花\"，而是**私域流量的大本营**\n- 适合深度内容沉淀，适合培养铁粉\n- 和视频号互通，可以形成闭环",
+      "keywords": [
+        "大本营",
+        "容沉淀",
+        "和视频号互",
+        "适合深度内",
+        "适合培养铁",
+        "而是",
+        "可以形成闭",
+        "昨日黄花",
+        "公众号定位",
+        "私域流量的",
+        "公众号不是"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "内容策略",
+      "text": "- 文章长度建议：1500-2500字（太短没深度，太长没人看）\n- 标题要\"既有信息量又有悬念\"\n- 评论区是公众号的\"第二内容\"\n- 推流顺序：关注用户→星标用户→普通用户→推荐",
+      "keywords": [
+        "太长没人看",
+        "又有悬念",
+        "普通用户",
+        "标题要",
+        "文章长度建",
+        "评论区是公",
+        "关注用户",
+        "星标用户",
+        "太短没深度",
+        "众号的",
+        "内容策略",
+        "第二内容",
+        "既有信息量",
+        "推流顺序",
+        "推荐"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "提升商业价值",
+      "text": "- 公众号的商业价值取决于**精准粉丝数**而非总量\n- 变现路径：广告→课程→社群→咨询（从轻到重）\n- 保持稳定更新频率（至少每周2-3篇）",
+      "keywords": [
+        "业价值取决",
+        "公众号的商",
+        "提升商业价",
+        "社群",
+        "精准粉丝数",
+        "从轻到重",
+        "而非总量",
+        "广告",
+        "课程",
+        "保持稳定更",
+        "咨询",
+        "新频率",
+        "至少每周",
+        "变现路径"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "微博特点",
+      "text": "- 微博是**公域流量最大的平台**，但粉丝粘性最低\n- 适合做\"声量\"——让更多人知道你的名字\n- 不适合做深度关系",
+      "keywords": [
+        "但粉丝粘性",
+        "不适合做深",
+        "让更多人知",
+        "声量",
+        "公域流量最",
+        "适合做",
+        "微博特点",
+        "大的平台",
+        "微博是",
+        "度关系",
+        "最低",
+        "道你的名字"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "内容创作",
+      "text": "- 长度建议：200-500字（不要太长）\n- 要蹭热点但不追热点——找到热点和自己的结合点\n- 多发观点性内容，少发生活琐事",
+      "keywords": [
+        "内容",
+        "要蹭热点但",
+        "找到热点和",
+        "自己的结合",
+        "内容创作",
+        "长度建议",
+        "不追热点",
+        "少发生活琐",
+        "不要太长",
+        "多发观点性"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "引流方法",
+      "text": "- 利用微博的搜索流量\n- 在热门话题下发表有质量的观点\n- 粉丝达到一定量后会有\"自来水\"传播",
+      "keywords": [
+        "利用微博的",
+        "量的观点",
+        "定量后会有",
+        "引流方法",
+        "在热门话题",
+        "自来水",
+        "搜索流量",
+        "下发表有质",
+        "粉丝达到一",
+        "传播"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "B站特点",
+      "text": "- 独特的社区文化——用户对\"恰饭\"包容度高\n- 适合中长视频（10-30分钟）\n- 用户平均学历最高，对深度内容接受度好\n- 新人up主要先混圈子再发内容",
+      "keywords": [
+        "主要先混圈",
+        "包容度高",
+        "子再发内容",
+        "独特的社区",
+        "用户对",
+        "恰饭",
+        "文化",
+        "分钟",
+        "对深度内容",
+        "历最高",
+        "站特点",
+        "用户平均学",
+        "适合中长视",
+        "接受度好",
+        "新人"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "推荐机制",
+      "text": "- B站的推荐核心是**完播率**\n- 标题要\"精准\"而非\"夸张\"\n- 封面要有\"讲述感\"",
+      "keywords": [
+        "站的推荐核",
+        "推荐机制",
+        "精准",
+        "标题要",
+        "夸张",
+        "而非",
+        "讲述感",
+        "心是",
+        "封面要有",
+        "完播率"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "新人起步建议",
+      "text": "- 前3-5条视频可以尝试不同方向\n- 看数据反馈决定主攻方向\n- B站适合做认知类、知识类内容",
+      "keywords": [
+        "站适合做认",
+        "条视频可以",
+        "看数据反馈",
+        "知识类内容",
+        "新人起步建",
+        "知类",
+        "决定主攻方",
+        "尝试不同方"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "抖音特点",
+      "text": "- 抖音的势能最大，但也是最\"卷\"的平台\n- 算法驱动，内容质量决定一切\n- 起号一定要垂直",
+      "keywords": [
+        "但也是最",
+        "定一切",
+        "抖音特点",
+        "起号一定要",
+        "的平台",
+        "抖音的势能",
+        "垂直",
+        "算法驱动",
+        "内容质量决",
+        "最大"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "特有玩法",
+      "text": "- 前3秒决定生死\n- 节奏要快、信息密度要高\n- 口播类内容在抖音依然有机会",
+      "keywords": [
+        "信息密度要",
+        "口播类内容",
+        "有机会",
+        "秒决定生死",
+        "节奏要快",
+        "在抖音依然",
+        "特有玩法"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "直播转化",
+      "text": "- 抖音直播：拉新→留存→转化三步走\n- 抖音直播适合卖低价课（9.9-99元）做引流\n- 不适合做高价交付",
+      "keywords": [
+        "合卖低价课",
+        "抖音直播",
+        "抖音直播适",
+        "留存",
+        "做引流",
+        "价交付",
+        "转化三步走",
+        "不适合做高",
+        "直播转化",
+        "拉新"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "朋友圈定位",
+      "text": "- 朋友圈是私域品宣的第一阵地，所有自媒体人都必须用\n- 朋友圈=你的个人电子名片",
+      "keywords": [
+        "朋友圈定位",
+        "域品宣的第",
+        "子名片",
+        "朋友圈",
+        "所有自媒体",
+        "你的个人电",
+        "人都必须用",
+        "一阵地",
+        "朋友圈是私"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "内容配比建议",
+      "text": "- 40%专业认知输出\n- 30%个人生活（要有选择性）\n- 20%客户案例/好评\n- 10%直接销售",
+      "keywords": [
+        "专业认知输",
+        "要有选择性",
+        "直接销售",
+        "客户案例",
+        "好评",
+        "内容配比建",
+        "个人生活"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "平台策略",
+      "heading": "雷区",
+      "text": "- 不要刷屏（每天最多3-5条）\n- 不要只发广告\n- 不要发负能量\n- 不要发没有价值的转发",
+      "keywords": [
+        "价值的转发",
+        "每天最多",
+        "不要发没有",
+        "不要刷屏",
+        "不要只发广",
+        "雷区",
+        "不要发负能"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "变现与商业",
+      "heading": "总览",
+      "text": "name: 谢胜子变现与商业\ndescription: 谢胜子自媒体变现模式、商业化路径、商业认知框架\ntype: reference\noriginSessionId: 57a86349-feb0-46cf-8c91-901e91e94467",
+      "keywords": [
+        "与商业",
+        "商业认知框",
+        "type",
+        "description",
+        "originSessionId",
+        "商业化路径",
+        "总览",
+        "谢胜子变现",
+        "name",
+        "reference",
+        "feb",
+        "谢胜子自媒",
+        "体变现模式"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "变现与商业",
+      "heading": "四个圈层理论",
+      "text": "IP/网红的价值在四个圈层中评价标准完全不同：\n1. **粉丝圈（受众）**: 看内容好不好看、人设喜不喜欢\n2. **网红圈（同行）**: 看商业思路清不清晰、有没有爆发力\n3. **品牌圈（金主）**: 看商业数据、转化能力、粉丝画像\n4. **资本圈（金主的金主）**: 看资产的长期价值和可复制性\n\n**关键认知**：一个只有粉丝喜欢、没有商业模式的网红，在同行/品牌/资本眼中社交价值很低。因为\"没有商业的东西在运转，就没有办法和真正有社会能量和财富能量的人进行商业和资源的交互\"。",
+      "keywords": [
+        "丝喜欢",
+        "看资产的长",
+        "好看",
+        "式的网红",
+        "完全不同",
+        "粉丝画像",
+        "看商业数据",
+        "交价值很低",
+        "没有商业的",
+        "东西在运转",
+        "粉丝圈",
+        "在同行",
+        "人设喜不喜",
+        "中评价标准",
+        "看内容好不",
+        "同行",
+        "品牌圈",
+        "清不清晰",
+        "转化能力",
+        "复制性",
+        "没有商业模",
+        "看商业思路",
+        "进行商业和",
+        "品牌",
+        "金主的金主",
+        "有没有爆发",
+        "资本圈",
+        "就没有办法",
+        "因为",
+        "四个圈层理",
+        "网红圈",
+        "金主",
+        "富能量的人",
+        "资源的交互",
+        "受众",
+        "网红的价值",
+        "期价值和可",
+        "一个只有粉",
+        "资本眼中社",
+        "和真正有社",
+        "会能量和财",
+        "在四个圈层",
+        "关键认知"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "变现与商业",
+      "heading": "从第一个粉丝开始想变现",
+      "text": "- 你不一定要一开始就变现，但**必须从一开始就这么想**\n- \"一个人不做一件事，不一定是他不想，而是他不能\"\n- \"没有商业化能力的网红完全是一种自嗨\"\n- \"没有商业能力的个人影响力不叫影响力\"",
+      "keywords": [
+        "丝开始想变",
+        "一开始就变",
+        "从第一个粉",
+        "完全是一种",
+        "不想",
+        "响力",
+        "一个人不做",
+        "始就这么想",
+        "而是他不能",
+        "自嗨",
+        "不一定是他",
+        "力的个人影",
+        "响力不叫影",
+        "没有商业能",
+        "必须从一开",
+        "你不一定要",
+        "没有商业化",
+        "能力的网红",
+        "一件事"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "变现与商业",
+      "heading": "名与利的关系（两个公式）",
+      "text": "1. **名气 + 商业认知 + 商业落地 = 赚钱**\n2. **赚钱 + 品牌理解 + 公关理解 = 名气**",
+      "keywords": [
+        "公关理解",
+        "名气",
+        "赚钱",
+        "品牌理解",
+        "两个公式",
+        "名与利的关",
+        "商业落地",
+        "商业认知"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "变现与商业",
+      "heading": "商业暗线思维",
+      "text": "- 普通用户只follow博主的\"内容明线\"\n- 聪明人同时follow博主的\"商业暗线\"——把他的广告、付费、品牌合作都当成学习素材\n- 进阶：看一个博主的**成长周期→变现周期→舆论周期**\n- 博主之间70%聊商业模式，20%聊内容",
+      "keywords": [
+        "付费",
+        "博主之间",
+        "博主的",
+        "聪明人同时",
+        "品牌合作都",
+        "看一个博主",
+        "聊商业模式",
+        "当成学习素",
+        "普通用户只",
+        "商业暗线思",
+        "进阶",
+        "成长周期",
+        "变现周期",
+        "把他的广告",
+        "内容明线",
+        "follow",
+        "舆论周期",
+        "聊内容",
+        "商业暗线"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "变现与商业",
+      "heading": "四大变现方式",
+      "text": "1. **接广告**（B端变现）\n   - 最直接、门槛最低\n   - 天花板：取决于粉丝量和领域\n   - 缺点：不可持续，广告多了伤粉\n\n2. **知识付费/课程**（C端变现）\n   - 轻交付：录播课（但盗版问题）\n   - 重交付：直播课/训练营\n   - 专栏课适合小红书平台（99-299元）\n   - 体系化课程需要团队运营\n\n3. **带货**\n   - 对博主带货能力要求高\n   - 不是每个人都适合\n   - 前期展示太多生活内容会削弱专业人设\n\n4. **1V1咨询**\n   - 最高客单价的变现方式\n   - 门槛：需要积累案例和口碑\n   - 适合起步期积累案例（低单价→高单价）",
+      "keywords": [
+        "专栏课适合",
+        "最高客单价",
+        "缺点",
+        "直播课",
+        "最直接",
+        "积累案例",
+        "接广告",
+        "会削弱专业",
+        "需要团队运",
+        "广告多了伤",
+        "取决于粉丝",
+        "但盗版问题",
+        "多生活内容",
+        "能力要求高",
+        "训练营",
+        "门槛最低",
+        "咨询",
+        "高单价",
+        "录播课",
+        "门槛",
+        "小红书平台",
+        "对博主带货",
+        "体系化课程",
+        "都适合",
+        "需要积累案",
+        "前期展示太",
+        "量和领域",
+        "的变现方式",
+        "适合起步期",
+        "轻交付",
+        "知识付费",
+        "带货",
+        "重交付",
+        "天花板",
+        "人设",
+        "课程",
+        "例和口碑",
+        "低单价",
+        "四大变现方",
+        "不是每个人",
+        "端变现",
+        "不可持续"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "变现与商业",
+      "heading": "变现路径阶梯",
+      "text": "- **阶段一**: 广告（积累粉丝和知名度）\n- **阶段二**: 专栏课/小课（测试付费意愿）\n- **阶段三**: 训练营/社群（中度交付）\n- **阶段四**: 1V1咨询/私教（高客单价）\n- **阶段五**: 出书/品牌IP化（长期价值）",
+      "keywords": [
+        "阶段五",
+        "广告",
+        "测试付费意",
+        "训练营",
+        "出书",
+        "咨询",
+        "积累粉丝和",
+        "专栏课",
+        "阶段四",
+        "阶段一",
+        "阶段二",
+        "变现路径阶",
+        "小课",
+        "社群",
+        "品牌",
+        "阶段三",
+        "中度交付",
+        "知名度",
+        "私教",
+        "长期价值",
+        "高客单价"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "变现与商业",
+      "heading": "广告变现",
+      "text": "- 报价体系：粉丝量×0.03-0.1（行业标准）\n- 提高广告单价的三个方法：\n  1. 提高粉丝精准度（垂直领域溢价最高）\n  2. 提高互动率（数据比粉丝数重要）\n  3. 积累案例和背书",
+      "keywords": [
+        "数重要",
+        "行业标准",
+        "垂直领域溢",
+        "提高互动率",
+        "积累案例和",
+        "价最高",
+        "广告变现",
+        "价的三个方",
+        "背书",
+        "数据比粉丝",
+        "粉丝量",
+        "准度",
+        "提高广告单",
+        "报价体系",
+        "提高粉丝精"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "变现与商业",
+      "heading": "品牌合作",
+      "text": "- 短期合作：单次推广\n- 长期合作：品牌大使/代言（需要强人设支撑）\n- IP授权：适合有辨识度的个人品牌",
+      "keywords": [
+        "支撑",
+        "适合有辨识",
+        "度的个人品",
+        "品牌合作",
+        "代言",
+        "授权",
+        "单次推广",
+        "短期合作",
+        "品牌大使",
+        "长期合作",
+        "需要强人设"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "变现与商业",
+      "heading": "课程产品设计",
+      "text": "- 低客单（99-299）：引流课，让用户\"试试你\"\n- 中客单（499-999）：系统课，完整交付\n- 高客单（1999+）：私教/训练营，重交付",
+      "keywords": [
+        "中客单",
+        "高客单",
+        "系统课",
+        "重交付",
+        "低客单",
+        "让用户",
+        "完整交付",
+        "训练营",
+        "私教",
+        "引流课",
+        "课程产品设",
+        "试试你"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "变现与商业",
+      "heading": "付费的深层逻辑",
+      "text": "- 人们为内容付费的动机：\n  1. 解决焦虑（最强烈）\n  2. 节省时间（次强烈）\n  3. 获取信息/认知\n  4. 社交价值（圈子）\n- **付费意愿 = 问题严重性 ÷ 价格**",
+      "keywords": [
+        "人们为内容",
+        "获取信息",
+        "付费意愿",
+        "价格",
+        "付费的动机",
+        "次强烈",
+        "认知",
+        "社交价值",
+        "圈子",
+        "逻辑",
+        "问题严重性",
+        "付费的深层",
+        "最强烈",
+        "节省时间",
+        "解决焦虑"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "变现与商业",
+      "heading": "粉丝与博主双向赋能",
+      "text": "- 粉丝不只是在\"消费\"内容，而是在\"投资\"你的成长\n- 铁杆粉丝经济：1000个愿意为你付费的铁杆粉丝就能养活你\n- 粉丝粘性=信任感+持续价值输出+互动回应",
+      "keywords": [
+        "内容",
+        "活你",
+        "粉丝与博主",
+        "粉丝不只是",
+        "个愿意为你",
+        "粉丝就能养",
+        "双向赋能",
+        "信任感",
+        "而是在",
+        "持续价值输",
+        "投资",
+        "铁杆粉丝经",
+        "你的成长",
+        "付费的铁杆",
+        "消费",
+        "粉丝粘性",
+        "互动回应"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "变现与商业",
+      "heading": "学校不教的商业常识",
+      "text": "- 赚钱的核心不是\"做事\"，是\"做局\"\n- 工资是\"买你的时间\"，不是买你的价值\n- 要积累**生产资料**（IP、人脉、认知、系统）",
+      "keywords": [
+        "工资是",
+        "不是",
+        "系统",
+        "商业常识",
+        "人脉",
+        "要积累",
+        "不是买你的",
+        "价值",
+        "赚钱的核心",
+        "认知",
+        "做局",
+        "学校不教的",
+        "买你的时间",
+        "生产资料",
+        "做事"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "变现与商业",
+      "heading": "个人商业模式",
+      "text": "- 卖时间（打工）→ 天花板最低\n- 卖技能（freelancer）→ 中等\n- 卖产品（课程/内容）→ 高\n- 卖资产（IP/品牌）→ 最高",
+      "keywords": [
+        "卖技能",
+        "卖产品",
+        "内容",
+        "freelancer",
+        "卖时间",
+        "中等",
+        "课程",
+        "个人商业模",
+        "品牌",
+        "打工",
+        "卖资产",
+        "最高",
+        "天花板最低"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "变现与商业",
+      "heading": "聪明人如何花钱",
+      "text": "- 花钱买时间（外包低价值工作）\n- 花钱买圈子（进入更高价值的社交圈）\n- 花钱买认知（课程、书籍、咨询）",
+      "keywords": [
+        "外包低价值",
+        "进入更高价",
+        "值的社交圈",
+        "花钱买认知",
+        "花钱买时间",
+        "花钱",
+        "工作",
+        "课程",
+        "书籍",
+        "咨询",
+        "花钱买圈子",
+        "聪明人如何"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "变现与商业",
+      "heading": "销售的本质",
+      "text": "- 所有工作本质上都是销售\n- 销售不是\"说服\"，是\"筛选\"——找到真正需要你的人\n- 销售的核心是信任，不是话术\n- 1V1销售的关键：听 > 说",
+      "keywords": [
+        "销售不是",
+        "质上都是销",
+        "所有工作本",
+        "筛选",
+        "销售的本质",
+        "找到真正需",
+        "要你的人",
+        "销售的关键",
+        "说服",
+        "销售的核心",
+        "不是话术",
+        "是信任"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "变现与商业",
+      "heading": "管理思维",
+      "text": "- 识人：看一个人的\"动机\"而非\"能力\"\n- 用人：把对的人放在对的位置\n- 容人：接受别人的不完美，容忍不同风格",
+      "keywords": [
+        "在对的位置",
+        "容人",
+        "动机",
+        "不完美",
+        "管理思维",
+        "而非",
+        "用人",
+        "能力",
+        "识人",
+        "把对的人放",
+        "容忍不同风",
+        "看一个人的",
+        "接受别人的"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "变现与商业",
+      "heading": "谈判技巧",
+      "text": "- 谈判不是\"争输赢\"，是\"找共识\"\n- 要掌握主动权，先了解对方的底线\n- 话术三要素：事实 + 感受 + 方案",
+      "keywords": [
+        "方案",
+        "的底线",
+        "话术三要素",
+        "要掌握主动",
+        "争输赢",
+        "谈判不是",
+        "谈判技巧",
+        "感受",
+        "事实",
+        "先了解对方",
+        "找共识"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "内容创作与心态",
+      "heading": "总览",
+      "text": "name: 谢胜子内容创作与心态\ndescription: 谢胜子关于持续创作、素材管理、创作者心态的方法论\ntype: reference\noriginSessionId: 57a86349-feb0-46cf-8c91-901e91e94467",
+      "keywords": [
+        "创作者心态",
+        "reference",
+        "type",
+        "持续创作",
+        "谢胜子关于",
+        "description",
+        "总览",
+        "originSessionId",
+        "谢胜子内容",
+        "name",
+        "的方法论",
+        "创作与心态",
+        "feb",
+        "素材管理"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "内容创作与心态",
+      "heading": "如何保持创作状态",
+      "text": "- 创作是**习惯不是灵感**——固定时间做固定的事\n- 建立素材库，随时积累（不要等需要的时候才去找）\n- 输入决定输出：每天保持2小时以上的高质量输入\n- **保持灵气**：不要过度商业化，保护自己的敏感度和观察力",
+      "keywords": [
+        "不要等需要",
+        "高质量输入",
+        "固定时间做",
+        "不要过度商",
+        "随时积累",
+        "敏感度和观",
+        "固定的事",
+        "业化",
+        "建立素材库",
+        "作状态",
+        "创作是",
+        "输入决定输",
+        "保持灵气",
+        "小时以上的",
+        "习惯不是灵",
+        "每天保持",
+        "保护自己的",
+        "察力",
+        "如何保持创",
+        "的时候才去"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "内容创作与心态",
+      "heading": "素材库体系",
+      "text": "- 按主题分类（不是按时间分类）\n- 建立\"选题池\"——随时记录想法\n- 素材类型：案例、数据、金句、故事、自己的思考\n- 定期整理和淘汰过时素材",
+      "keywords": [
+        "金句",
+        "素材类型",
+        "不是按时间",
+        "按主题分类",
+        "故事",
+        "淘汰过时素",
+        "分类",
+        "自己的思考",
+        "定期整理和",
+        "数据",
+        "随时记录想",
+        "选题池",
+        "案例",
+        "素材库体系",
+        "建立"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "内容创作与心态",
+      "heading": "流量忽高忽低怎么办",
+      "text": "- 流量波动是**常态**，不波动反而是异常\n- 爆款后的低谷是正常的\"回调\"\n- 不要在流量低谷期改变方向——数据需要时间检验\n- 关注**趋势线**而非单点数据",
+      "keywords": [
+        "不要在流量",
+        "爆款后的低",
+        "方向",
+        "趋势线",
+        "回调",
+        "数据需要时",
+        "低怎么办",
+        "间检验",
+        "流量波动是",
+        "是异常",
+        "而非单点数",
+        "流量忽高忽",
+        "不波动反而",
+        "谷是正常的",
+        "低谷期改变",
+        "常态",
+        "关注"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "内容创作与心态",
+      "heading": "面对评价和黑粉",
+      "text": "- 被骂说明你火了——争议是流量的伴生品\n- 区分\"建设性批评\"和\"恶意攻击\"\n- 不要和黑粉纠缠——沉默是最好的回应\n- 过多夸奖是创作者的陷阱——让你想维持\"好人设\"而不敢冒险",
+      "keywords": [
+        "火了",
+        "让你想维持",
+        "区分",
+        "争议是流量",
+        "纠缠",
+        "沉默是最好",
+        "恶意攻击",
+        "创作者的陷",
+        "的回应",
+        "好人设",
+        "而不敢冒险",
+        "面对评价和",
+        "不要和黑粉",
+        "过多夸奖是",
+        "被骂说明你",
+        "黑粉",
+        "建设性批评",
+        "的伴生品"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "内容创作与心态",
+      "heading": "三者的区别",
+      "text": "- **流量**: 路过的人——看完就走，不会记住你\n- **粉丝**: 关注你的人——会看你的内容，但不一定会付费\n- **追随者**: 信任你的人——会为你的推荐付费，会跟着你走",
+      "keywords": [
+        "付费",
+        "但不一定会",
+        "追随者",
+        "荐付费",
+        "信任你的人",
+        "会为你的推",
+        "会看你的内",
+        "不会记住你",
+        "看完就走",
+        "会跟着你走",
+        "关注你的人",
+        "三者的区别",
+        "粉丝",
+        "路过的人",
+        "流量"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "内容创作与心态",
+      "heading": "1000个铁杆粉丝理论",
+      "text": "- 你不需要100万粉丝，只需要1000个愿意为你付费的铁杆粉丝\n- 铁杆粉丝的标准：愿意为你的任何产品付费\n- 做IP的核心目标：把流量→粉丝→追随者",
+      "keywords": [
+        "愿意为你的",
+        "把流量",
+        "理论",
+        "追随者",
+        "个愿意为你",
+        "只需要",
+        "铁杆粉丝的",
+        "任何产品付",
+        "标准",
+        "个铁杆粉丝",
+        "的核心目标",
+        "万粉丝",
+        "付费的铁杆",
+        "你不需要",
+        "粉丝"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "内容创作与心态",
+      "heading": "粉丝粘性由什么决定",
+      "text": "- 内容价值（50%）\n- 人格魅力（30%）\n- 互动频率（20%）",
+      "keywords": [
+        "互动频率",
+        "内容价值",
+        "人格魅力",
+        "粉丝粘性由",
+        "什么决定"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "内容创作与心态",
+      "heading": "博主为什么都互相认识",
+      "text": "- 自媒体圈子是\"强连接\"网络——头部博主之间基本都认识\n- 社交是最好的信息源和合作机会",
+      "keywords": [
+        "社交是最好",
+        "强连接",
+        "都互相认识",
+        "合作机会",
+        "间基本都认",
+        "的信息源和",
+        "自媒体圈子",
+        "博主为什么",
+        "头部博主之",
+        "网络"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "内容创作与心态",
+      "heading": "如何认识想认识的大V",
+      "text": "- 先提供价值（你的专业领域能帮到对方的地方）\n- 真诚表达欣赏，不要过度恭维\n- 通过中间人介绍效率最高",
+      "keywords": [
+        "先提供价值",
+        "你的专业领",
+        "通过中间人",
+        "介绍效率最",
+        "域能帮到对",
+        "不要过度恭",
+        "如何认识想",
+        "方的地方",
+        "认识的大",
+        "真诚表达欣"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "内容创作与心态",
+      "heading": "MCN的选择",
+      "text": "- 签MCN的利：资源、商务、运营支持\n- 签MCN的弊：分成、自由度、合约绑定\n- 签前必看：合同条款（尤其是解约条款和IP归属）",
+      "keywords": [
+        "自由度",
+        "资源",
+        "运营支持",
+        "合约绑定",
+        "商务",
+        "条款和",
+        "的利",
+        "合同条款",
+        "签前必看",
+        "MCN",
+        "的弊",
+        "尤其是解约",
+        "的选择",
+        "归属",
+        "分成"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "内容创作与心态",
+      "heading": "两者的平衡",
+      "text": "- **商业野心**: 想赚钱、想做大、想变现\n- **艺术野心**: 想做好内容、想表达、想影响别人\n- 两者不矛盾，但要找到自己的配比",
+      "keywords": [
+        "但要找到自",
+        "艺术野心",
+        "商业野心",
+        "想做好内容",
+        "己的配比",
+        "两者的平衡",
+        "想做大",
+        "想变现",
+        "想赚钱",
+        "两者不矛盾",
+        "想表达",
+        "想影响别人"
+      ]
+    },
+    {
+      "person": "谢胜子",
+      "domain": "内容创作与心态",
+      "heading": "表达的重要性",
+      "text": "- 好的教育应该鼓励表达——表达能力是自媒体最核心的能力\n- 社交媒体就像一个\"大染缸\"——每个人都在被影响也在影响别人\n- 表达的目的是连接，不是炫耀",
+      "keywords": [
+        "表达能力是",
+        "该鼓励表达",
+        "像一个",
+        "社交媒体就",
+        "好的教育应",
+        "大染缸",
+        "每个人都在",
+        "表达的重要",
+        "自媒体最核",
+        "影响别人",
+        "心的能力",
+        "是连接",
+        "表达的目的",
+        "不是炫耀",
+        "被影响也在"
+      ]
+    }
+  ],
+  "曲曲": [
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "总览",
+      "text": "name: 曲曲核心理论\ndescription: 曲曲大女人两性关系、情绪价值、向上社交、强者思维核心方法论\ntype: reference\noriginSessionId: 57a86349-feb0-46cf-8c91-901e91e94467",
+      "keywords": [
+        "向上社交",
+        "曲曲核心理",
+        "情绪价值",
+        "强者思维核",
+        "心方法论",
+        "type",
+        "description",
+        "originSessionId",
+        "曲曲大女人",
+        "两性关系",
+        "name",
+        "reference",
+        "feb",
+        "总览"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "一、曲曲是谁",
+      "text": "曲曲（曲曲大女人）—— 两性关系领域的顶流IP。她的核心标签：**人间清醒、极度现实、强者思维**。\n\n曲曲和其他情感博主最大的不同：她完全不讲\"爱情\"，她只讲**交换、价值、筹码、博弈**。她的课程体系包括\"金贵的关系1.0\"（24节课）和\"金贵的事业2.0\"。\n\n她的核心观点：**感情是弱者的遮羞布，强者只看目标和利益。**",
+      "keywords": [
+        "曲曲是谁",
+        "金贵的事业",
+        "域的顶流",
+        "感情是弱者",
+        "她只讲",
+        "两性关系领",
+        "筹码",
+        "交换",
+        "爱情",
+        "金贵的关系",
+        "人间清醒",
+        "节课",
+        "她的课程体",
+        "大的不同",
+        "曲曲和其他",
+        "强者思维",
+        "她完全不讲",
+        "极度现实",
+        "情感博主最",
+        "曲曲大女人",
+        "曲曲",
+        "博弈",
+        "强者只看目",
+        "系包括",
+        "标和利益",
+        "价值",
+        "的遮羞布",
+        "她的核心标",
+        "她的核心观"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "核心第一性原理：关系=交换",
+      "text": "曲曲一切理论的基石：**任何关系的本质都是交换。**\n\n- 不要持有\"关系义务论\"——男人应该怎样、男人应该为我花钱、应该宠着我。这些\"应该\"不代表你的认知，只是你要吸引这样的人\n- 建立一段关系时，你身上一定有对方所需要的价值\n- 关系的本质不是爱，是**价值互换**\n- 人跟人之间更多是**权利和义务**，而不是单纯的爱。你有多少义务，就要行使多少权利",
+      "keywords": [
+        "的爱",
+        "曲曲一切理",
+        "应该",
+        "不是爱",
+        "关系的本质",
+        "男人应该为",
+        "交换",
+        "核心第一性",
+        "有对方所需",
+        "男人应该怎",
+        "认知",
+        "建立一段关",
+        "应该宠着我",
+        "人跟人之间",
+        "就要行使多",
+        "更多是",
+        "论的基石",
+        "引这样的人",
+        "权利和义务",
+        "要的价值",
+        "我花钱",
+        "只是你要吸",
+        "这些",
+        "少权利",
+        "价值互换",
+        "本质都是交",
+        "系时",
+        "任何关系的",
+        "原理",
+        "关系",
+        "而不是单纯",
+        "关系义务论",
+        "你身上一定",
+        "不要持有",
+        "不代表你的",
+        "你有多少义"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "降低付出感",
+      "text": "- 什么是付出感？\"我对你这么好，我这么爱你，我为你做了这么多，你为什么不喜欢我？\"\n- 所有付出都是**有所求**的——你付出后，一定是希望对方给予回馈的\n- 强者心态：把自己的付出看作**投资**\n- 弱者心态：把付出看作**牺牲**\n- 爱的前提是\"自爱\"，自爱的前提是\"自私\"——重心放在自己身上，每件事情都是为自己做的",
+      "keywords": [
+        "己身上",
+        "你为什么不",
+        "把自己的付",
+        "爱的前提是",
+        "自爱",
+        "一定是希望",
+        "有所求",
+        "自爱的前提",
+        "强者心态",
+        "你付出后",
+        "什么是付出",
+        "自私",
+        "喜欢我",
+        "弱者心态",
+        "出看作",
+        "我对你这么",
+        "馈的",
+        "降低付出感",
+        "对方给予回",
+        "牺牲",
+        "每件事情都",
+        "投资",
+        "所有付出都",
+        "这么多",
+        "我为你做了",
+        "把付出看作",
+        "重心放在自",
+        "我这么爱你",
+        "是为自己做"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "关系的四个关键认知",
+      "text": "1. **关系的本质是交换**——没有无缘无故的爱，一切都是价值匹配\n2. **关系不是一纸契约，而是权力的游戏**——博弈贯穿始终\n3. **关系中不要谈\"借\"**——我们从不跟男人谈\"借\"字\n4. **关系的维护靠的是价值，不是感情**——感情会变，价值不会",
+      "keywords": [
+        "是交换",
+        "靠的是价值",
+        "关系的本质",
+        "博弈贯穿始",
+        "值匹配",
+        "而是权力的",
+        "不是感情",
+        "没有无缘无",
+        "一切都是价",
+        "价值不会",
+        "关系的维护",
+        "我们从不跟",
+        "关系不是一",
+        "感情会变",
+        "故的爱",
+        "游戏",
+        "关系中不要",
+        "男人谈",
+        "关键认知",
+        "关系的四个",
+        "纸契约"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "情绪价值的定义",
+      "text": "情绪价值就是**引起对方情绪的波动**。波动有波峰，有波谷。",
+      "keywords": [
+        "有波谷",
+        "波动有波峰",
+        "绪的波动",
+        "情绪价值的",
+        "定义",
+        "引起对方情",
+        "情绪价值就"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "情绪价值的分类",
+      "text": "**正面情绪价值（80%）**：\n1. **赞美**——真诚感+细节感（眼里有星星，真诚看着对方；细节体现在对方的独特性）\n2. **接纳弱点**——对方展现弱点后，理解并接纳。人无完人，正是弱点才形成了立体的人\n3. **安抚与鼓励**——肯定过去+表达信任。所有过去都不是浪费，都在一步步构建出现在的自己\n4. **正向引导**——用语言引导对方朝你想要的方向走\n\n**负面情绪价值（20%）**：\n1. **极度失望**——对方做错时，我们要表现出来（哭泣、冷漠、暴躁）。让对方知道这个负面情绪是他带来的\n2. **惩罚**——\"我对你这么好，我要的不是这个结果\"，然后告诉对方应该怎么做\n3. **打压**——对方侵犯自己利益时要打压，但注意不要提前打压。只有涉及自己核心利益时再打压",
+      "keywords": [
+        "真诚感",
+        "所有过去都",
+        "这个负面情",
+        "构建出现在",
+        "细节感",
+        "我们要表现",
+        "情绪价值的",
+        "接纳弱点",
+        "对方展现弱",
+        "不是浪费",
+        "出来",
+        "冷漠",
+        "方应该怎么",
+        "都在一步步",
+        "提前打压",
+        "极度失望",
+        "眼里有星星",
+        "对方做错时",
+        "点后",
+        "然后告诉对",
+        "但注意不要",
+        "让对方知道",
+        "打压",
+        "人无完人",
+        "安抚与鼓励",
+        "赞美",
+        "绪是他带来",
+        "时再打压",
+        "我要的不是",
+        "理解并接纳",
+        "我对你这么",
+        "分类",
+        "对方侵犯自",
+        "细节体现在",
+        "对方朝你想",
+        "只有涉及自",
+        "惩罚",
+        "这个结果",
+        "要的方向走",
+        "正面情绪价",
+        "的自己",
+        "对方的独特",
+        "正向引导",
+        "己利益时要",
+        "负面情绪价",
+        "己核心利益",
+        "暴躁",
+        "哭泣",
+        "形成了立体",
+        "表达信任",
+        "真诚看着对",
+        "的人",
+        "肯定过去",
+        "用语言引导",
+        "正是弱点才"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "橡皮筋理论",
+      "text": "- 正面情绪价值 = 皮筋拉满\n- 负面情绪价值 = 皮筋弹回（对方才会有痛感）\n- 不敢用负面情绪的原因：一是正面情绪价值没有拉满；二是自己太过自卑",
+      "keywords": [
+        "绪价值没有",
+        "橡皮筋理论",
+        "皮筋弹回",
+        "对方才会有",
+        "负面情绪价",
+        "痛感",
+        "一是正面情",
+        "皮筋拉满",
+        "二是自己太",
+        "不敢用负面",
+        "正面情绪价",
+        "情绪的原因",
+        "拉满",
+        "过自卑"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "情绪价值的二八定律",
+      "text": "- 80%正面情绪 + 20%负面情绪\n- 80%语言 + 20%行动\n- 越是面对高价值的人，情绪价值越是核心竞争力",
+      "keywords": [
+        "情绪价值越",
+        "越是面对高",
+        "正面情绪",
+        "语言",
+        "行动",
+        "价值的人",
+        "情绪价值的",
+        "二八定律",
+        "负面情绪",
+        "是核心竞争"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "强者心态vs弱者心态",
+      "text": "| 维度 | 强者心态 | 弱者心态 |\n|------|---------|---------|\n| 付出 | 付出是投资 | 付出是牺牲 |\n| 错误 | 为选择买单 | 责怪别人 |\n| 目标 | 一切为目标服务 | 被情绪左右 |\n| 关系 | 合作与交换 | 依赖与索取 |\n| 面子 | 为了目标可以放下面子 | 为了面子放弃机会 |\n| 拒绝 | 敢于拒绝，维护框架 | 不敢拒绝，怕得罪人 |",
+      "keywords": [
+        "怕得罪人",
+        "面子",
+        "一切为目标",
+        "不敢拒绝",
+        "服务",
+        "以放下面子",
+        "错误",
+        "强者心态",
+        "责怪别人",
+        "敢于拒绝",
+        "合作与交换",
+        "弱者心态",
+        "依赖与索取",
+        "付出是投资",
+        "为了面子放",
+        "为了目标可",
+        "付出",
+        "维护框架",
+        "目标",
+        "付出是牺牲",
+        "为选择买单",
+        "关系",
+        "拒绝",
+        "维度",
+        "被情绪左右",
+        "弃机会"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "强者思维的底层逻辑",
+      "text": "1. **一切为我所用，一切为我赋能**——以我为出发点，找到并追求自己的目标\n2. **语言是目的，行动是态度**——不要看他怎么说，看他怎么做\n3. **不为无法验证的事情辩驳，不为无法改变的事情焦虑**\n4. **你的核心诉求是什么**——不要被边缘化信息影响，他怎么想怎么说都不重要\n5. **遇到问题解决问题，不预设问题**\n6. **一件事只能罚一次**——罚完了要么撤退，要么翻篇\n7. **你唯一的执念应该是让自己变得更好**\n8. **凡是不嫩作用于我的价值等于没有价值**",
+      "keywords": [
+        "罚一次",
+        "证的事情辩",
+        "值等于没有",
+        "强者思维的",
+        "不预设问题",
+        "看他怎么做",
+        "么说",
+        "不要被边缘",
+        "求是什么",
+        "么说都不重",
+        "以我为出发",
+        "你唯一的执",
+        "一切为我所",
+        "自己的目标",
+        "底层逻辑",
+        "不要看他怎",
+        "一切为我赋",
+        "变的事情焦",
+        "罚完了要么",
+        "遇到问题解",
+        "他怎么想怎",
+        "念应该是让",
+        "找到并追求",
+        "化信息影响",
+        "不为无法改",
+        "撤退",
+        "语言是目的",
+        "行动是态度",
+        "决问题",
+        "一件事只能",
+        "要么翻篇",
+        "你的核心诉",
+        "用于我的价",
+        "价值",
+        "自己变得更",
+        "凡是不嫩作",
+        "不为无法验"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "弱势思维的特征",
+      "text": "- 喜欢抱团取暖\n- 热衷于道德绑架\n- 抱怨多，行动少\n- 害怕拒绝，不敢提要求\n- 被光环迷惑，容易被白嫖\n- 清高（小钱看不上，大钱赚不到）\n- 懒惰（阻碍发财致富的两大绊脚石：懒惰和清高）",
+      "keywords": [
+        "懒惰",
+        "害怕拒绝",
+        "抱怨多",
+        "绑架",
+        "喜欢抱团取",
+        "阻碍发财致",
+        "容易被白嫖",
+        "懒惰和清高",
+        "弱势思维的",
+        "富的两大绊",
+        "清高",
+        "特征",
+        "小钱看不上",
+        "大钱赚不到",
+        "不敢提要求",
+        "脚石",
+        "行动少",
+        "热衷于道德",
+        "被光环迷惑"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "弱关系→强关系转化",
+      "text": "**弱关系**：有认识的途径就可以，见面、说话、社交软件认识都可以\n**强关系**：需要深度的信任和价值交换\n\n**方法论：目的性社交+求同存异**",
+      "keywords": [
+        "弱关系",
+        "径就可以",
+        "方法论",
+        "识都可以",
+        "见面",
+        "交换",
+        "目的性社交",
+        "信任和价值",
+        "社交软件认",
+        "强关系",
+        "说话",
+        "需要深度的",
+        "有认识的途",
+        "求同存异",
+        "强关系转化"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "目的性社交",
+      "text": "- 社交一定要带着**交易的目的和属性**\n- 先展现自己的价值（开屏），让大佬看到你能提供什么\n- 重点不是一定给对方带来什么价值，而是让对方**感觉到你有可能**带来价值\n- 思考怎么把资源串联起来，链接不同的人",
+      "keywords": [
+        "重点不是一",
+        "链接不同的",
+        "目的性社交",
+        "而是让对方",
+        "感觉到你有",
+        "社交一定要",
+        "交易的目的",
+        "让大佬看到",
+        "可能",
+        "带着",
+        "开屏",
+        "的价值",
+        "思考怎么把",
+        "资源串联起",
+        "你能提供什",
+        "和属性",
+        "定给对方带",
+        "来什么价值",
+        "带来价值",
+        "先展现自己"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "求同存异",
+      "text": "**求同（弱于对方时）**：\n- 现有的同：共同兴趣爱好，价值观认同\n- 未来的同：构建未来共同利益\n- 共同的\"敌人\"：表达共同的意识形态\n\n**存异（升华关系时）**：\n- 但凡求同，都是弱于对方的\n- 升华关系，一定是你有我没有\n- 找到自己的优势场，才能和对方平等交流",
+      "keywords": [
+        "现有的同",
+        "弱于对方时",
+        "方的",
+        "才能和对方",
+        "都是弱于对",
+        "求同",
+        "一定是你有",
+        "我没有",
+        "优势场",
+        "构建未来共",
+        "同利益",
+        "敌人",
+        "共同兴趣爱",
+        "意识形态",
+        "共同的",
+        "存异",
+        "但凡求同",
+        "价值观认同",
+        "表达共同的",
+        "找到自己的",
+        "升华关系时",
+        "升华关系",
+        "平等交流",
+        "未来的同",
+        "求同存异"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "社交误区",
+      "text": "1. **不要去挑战对方的权威**——目的是拉关系，不是掰扯输赢\n2. **不要自我贬低\"我没权没势\"**——价值有很多种（情绪价值、陪伴价值、生育价值、观赏价值）\n3. **不要展现太强社交属性**——说\"我认识XXX\"会让对方觉得你不需要他了\n4. **不要急于报价**——不要过快透露底牌\n5. **不要展现边缘价值，要展现硬核价值**",
+      "keywords": [
+        "不要过快透",
+        "会让对方觉",
+        "目的是拉关",
+        "我认识",
+        "价值有很多",
+        "露底牌",
+        "不是掰扯输",
+        "缘价值",
+        "情绪价值",
+        "XXX",
+        "观赏价值",
+        "对方的权威",
+        "不要自我贬",
+        "不要去挑战",
+        "得你不需要",
+        "社交误区",
+        "生育价值",
+        "不要展现太",
+        "我没权没势",
+        "强社交属性",
+        "他了",
+        "要展现硬核",
+        "不要展现边",
+        "价值",
+        "陪伴价值",
+        "不要急于报"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "四大方法论",
+      "text": "**方法论一：引导对方付出最容易（且最愿意）给的东西**\n- 判断角色+分析风险\n- 不要向不同的人要同样的东西\n- 付出不只是花钱，还可以是关系、客户等\n- 最容易给的，对他来说才是风险系数低的\n\n**方法论二：别想空手套白狼，自己也要付出**\n- 引导付出是为了筛选人群，不是为了无限压榨\n- 付出情绪价值+对方给出物质回报后，偶尔也要给予物质反馈\n- 任何人的付出程度都基于关系亲密度\n\n**方法论三：语言引导从大到小，实际索取从小到大**\n- 语言：漫天要价，用玩笑试探对方的底线\n- 实际：不能狮子大开口，从小礼物开始逐渐引导\n- 实际索取路径：确立目标→设置时长→培养付费习惯→植入需求→软硬兼施\n\n**方法论四：不要害怕引导付出**\n- 引导付出就是在表达需求\n- 你先付出了，了解了对方的需求，提供了情绪价值，所以对方也需要反馈\n- 如果引导后对方还是不愿意付出，这样的人不是你需要的\n- 永远不要指望对方主动给你加码（对象、上级、合作伙伴）",
+      "keywords": [
+        "合作伙伴",
+        "培养付费习",
+        "实际索取路",
+        "方法论一",
+        "任何人的付",
+        "确立目标",
+        "上级",
+        "的东西",
+        "予物质反馈",
+        "出程度都基",
+        "对方还是不",
+        "你先付出了",
+        "对象",
+        "为了筛选人",
+        "引导付出是",
+        "设置时长",
+        "限压榨",
+        "不要害怕引",
+        "对方的底线",
+        "如果引导后",
+        "自己也要付",
+        "低的",
+        "出最容易",
+        "的人要同样",
+        "软硬兼施",
+        "永远不要指",
+        "这样的人不",
+        "于关系亲密",
+        "白狼",
+        "是风险系数",
+        "方法论二",
+        "付出不只是",
+        "方法论四",
+        "引导付出就",
+        "实际",
+        "方法论三",
+        "判断角色",
+        "价值",
+        "引导对方付",
+        "是你需要的",
+        "是在表达需",
+        "对他来说才",
+        "提供了情绪",
+        "语言",
+        "给你加码",
+        "花钱",
+        "了解了对方",
+        "导付出",
+        "付出情绪价",
+        "给的东西",
+        "分析风险",
+        "四大方法论",
+        "质回报后",
+        "望对方主动",
+        "不要向不同",
+        "最容易给的",
+        "开口",
+        "语言引导从",
+        "对方给出物",
+        "还可以是关",
+        "漫天要价",
+        "不能狮子大",
+        "客户等",
+        "小到大",
+        "偶尔也要给",
+        "的需求",
+        "别想空手套",
+        "植入需求",
+        "实际索取从",
+        "愿意付出",
+        "所以对方也",
+        "大到小",
+        "需要反馈",
+        "从小礼物开",
+        "且最愿意",
+        "不是为了无",
+        "用玩笑试探",
+        "始逐渐引导"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "服从性测试",
+      "text": "- 给对方提出无关痛痒的小请求\n- 逐渐帮对方养成帮你做事情的**习惯**\n- 方法：撒娇语气+不方便的理由（\"我肚子痛，走不了路，你可以帮我去买东西吗？\"）\n- 配合暧昧信号（给小礼物），对方就会揣摩你是不是喜欢他",
+      "keywords": [
+        "逐渐帮对方",
+        "摩你是不是",
+        "无关痛痒的",
+        "对方就会揣",
+        "配合暧昧信",
+        "事情的",
+        "你可以帮我",
+        "撒娇语气",
+        "我肚子痛",
+        "养成帮你做",
+        "方法",
+        "给小礼物",
+        "去买东西吗",
+        "喜欢他",
+        "走不了路",
+        "给对方提出",
+        "不方便的理",
+        "小请求",
+        "服从性测试",
+        "习惯"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "男人分类论",
+      "text": "曲曲将男人分为几种类型，需要不同类型的话术和策略：\n\n1. **多偶男**——让他觉得你是最包容他的\n2. **单偶男**——让他觉得你是最在乎他的\n3. **皇帝男**——需要崇拜和服从\n4. **鸡肋男**——扣扣搜搜，软磨硬泡才付出一点点\n5. **画饼男**——光承诺不兑现，需要具体化落实\n6. **抠门男**——需要判断是否值得继续投入\n7. **蝴蝶男**——挣得不多还花枝招展\n8. **优质男**——对价格不敏感，更关注你是否有价值",
+      "keywords": [
+        "挣得不多还",
+        "需要具体化",
+        "多偶男",
+        "投入",
+        "否有价值",
+        "是最包容他",
+        "是最在乎他",
+        "对价格不敏",
+        "策略",
+        "型的话术和",
+        "否值得继续",
+        "软磨硬泡才",
+        "需要判断是",
+        "单偶男",
+        "画饼男",
+        "抠门男",
+        "需要崇拜和",
+        "花枝招展",
+        "男人分类论",
+        "让他觉得你",
+        "服从",
+        "鸡肋男",
+        "需要不同类",
+        "皇帝男",
+        "曲曲将男人",
+        "分为几种类",
+        "更关注你是",
+        "光承诺不兑",
+        "落实",
+        "蝴蝶男",
+        "付出一点点",
+        "优质男",
+        "扣扣搜搜"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "如何判断男人值不值得",
+      "text": "- 不看语言，看行为——事出反常必有妖\n- 对方是否愿意为你付出（时间/金钱/资源/人脉）\n- 付出是否有持续性（不只是刚开始的热情）\n- 对方的发展阶段是否和你匹配\n- 对方的动机是什么，而非能力是什么",
+      "keywords": [
+        "对方是否愿",
+        "什么",
+        "时间",
+        "不只是刚开",
+        "有妖",
+        "人脉",
+        "人值不值得",
+        "对方的动机",
+        "是什么",
+        "始的热情",
+        "你匹配",
+        "不看语言",
+        "付出是否有",
+        "阶段是否和",
+        "意为你付出",
+        "看行为",
+        "资源",
+        "持续性",
+        "而非能力是",
+        "事出反常必",
+        "金钱",
+        "对方的发展",
+        "如何判断男"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "搞钱第一性原理：信息差",
+      "text": "赚钱的本质就是**买和卖**。信息差可行的三个原因：\n1. 总有人没有找信息差——不用高估别人的信息差\n2. 总有人不敢卖信息差\n3. 总有人听不懂信息差——为信息的表达方式而付费",
+      "keywords": [
+        "买和卖",
+        "原理",
+        "达方式而付",
+        "信息差可行",
+        "懂信息差",
+        "总有人没有",
+        "为信息的表",
+        "人的信息差",
+        "找信息差",
+        "总有人不敢",
+        "总有人听不",
+        "就是",
+        "的三个原因",
+        "赚钱的本质",
+        "不用高估别",
+        "信息差",
+        "卖信息差",
+        "搞钱第一性"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "寻找信息差的三个目的",
+      "text": "1. 寻找价格信息差\n2. 看到可能性\n3. 沉淀数据库（搭建商业模型，产品体系就像拼积木）",
+      "keywords": [
+        "寻找价格信",
+        "搭建商业模",
+        "像拼积木",
+        "寻找信息差",
+        "看到可能性",
+        "息差",
+        "的三个目的",
+        "沉淀数据库",
+        "产品体系就"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "杠杆思维",
+      "text": "**外部杠杆**：\n- 趋势杠杆（追风口，但不害怕错过）\n- 城市杠杆（大城市有更大可能性）\n\n**内部杠杆**：\n- 人脉杠杆（关系博弈）\n- 市场杠杆（把自己从经营活动中剥离出来）\n- 产品是否刚需、能否复购\n- 扩宽营销渠道\n- 搭团队做交付\n- 找对人补短板\n- 科技手段赋能",
+      "keywords": [
+        "大可能性",
+        "大城市有更",
+        "把自己从经",
+        "趋势杠杆",
+        "离出来",
+        "市场杠杆",
+        "找对人补短",
+        "关系博弈",
+        "人脉杠杆",
+        "扩宽营销渠",
+        "杠杆思维",
+        "产品是否刚",
+        "但不害怕错",
+        "科技手段赋",
+        "内部杠杆",
+        "追风口",
+        "外部杠杆",
+        "能否复购",
+        "营活动中剥",
+        "搭团队做交",
+        "城市杠杆"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "长期主义",
+      "text": "- 坚持农耕逻辑，摒弃游牧思维——深耕才是做乘法\n- 坚持第一诉求，不要既要又要还要\n- 寻找遥远的偶像，不要害怕迷茫\n- 附近的圈子纬度不高，附近的偶像容易祛魅",
+      "keywords": [
+        "容易祛魅",
+        "偶像",
+        "附近的圈子",
+        "不要既要又",
+        "附近的偶像",
+        "深耕才是做",
+        "坚持第一诉",
+        "摒弃游牧思",
+        "乘法",
+        "长期主义",
+        "坚持农耕逻",
+        "纬度不高",
+        "不要害怕迷",
+        "寻找遥远的",
+        "要还要"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "打造长板",
+      "text": "- 找成功案例对标\n- 长板可以跨领域\n- 当不了冠军，就当季军——多维度差异化竞争\n- 价格战就是死局\n- 修正严重影响发展的短板",
+      "keywords": [
+        "当不了冠军",
+        "打造长板",
+        "就当季军",
+        "响发展的短",
+        "找成功案例",
+        "多维度差异",
+        "修正严重影",
+        "对标",
+        "价格战就是",
+        "长板可以跨",
+        "化竞争",
+        "死局",
+        "领域"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "破除焦虑",
+      "text": "- 焦虑的反义词是**具体**\n- 具象化：没关系、没办法、能解决\n- 永远都会有客户，永远都会有市场\n- 行动推动决策，决策只做一次",
+      "keywords": [
+        "具体",
+        "词是",
+        "破除焦虑",
+        "具象化",
+        "能解决",
+        "客户",
+        "永远都会有",
+        "决策只做一",
+        "没关系",
+        "焦虑的反义",
+        "没办法",
+        "市场",
+        "行动推动决"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "为什么会被白嫖",
+      "text": "1. **不敢拒绝**——对方地位高气场被压制；放大对方价值；怕对方不高兴\n2. **不敢提要求**——怕要求过分；没建立预期前不敢开口\n3. **被光环迷惑**——对方是大佬就什么都愿意做\n4. **轻信承诺和画饼**——对方说给什么就信",
+      "keywords": [
+        "放大对方价",
+        "不敢拒绝",
+        "就什么都愿",
+        "对方地位高",
+        "气场被压制",
+        "为什么会被",
+        "前不敢开口",
+        "画饼",
+        "白嫖",
+        "对方说给什",
+        "么就信",
+        "不敢提要求",
+        "怕对方不高",
+        "怕要求过分",
+        "轻信承诺和",
+        "没建立预期",
+        "意做",
+        "对方是大佬",
+        "被光环迷惑"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "如何避免被白嫖",
+      "text": "1. **制造不确定性**——让对方猜你到底喜不喜欢他\n2. **服从性测试**——从小请求开始培养习惯\n3. **不急于确定关系**——拉长前期相处时间\n4. **不要过快暴露底牌**——包括过早发生关系\n5. **不答应，不拒绝**——回应大佬表白的话术：\"你这么优秀的男性能够欣赏我，我很开心，也很感激，但目前我没办法接受您的这份好意，因为我目前的重心放在工作上\"",
+      "keywords": [
+        "不答应",
+        "到底喜不喜",
+        "露底牌",
+        "生关系",
+        "的重心放在",
+        "让对方猜你",
+        "不急于确定",
+        "的男性能够",
+        "因为我目前",
+        "处时间",
+        "从小请求开",
+        "白嫖",
+        "也很感激",
+        "但目前我没",
+        "欢他",
+        "拉长前期相",
+        "包括过早发",
+        "白的话术",
+        "欣赏我",
+        "我很开心",
+        "工作上",
+        "办法接受您",
+        "制造不确定",
+        "不要过快暴",
+        "你这么优秀",
+        "始培养习惯",
+        "的这份好意",
+        "如何避免被",
+        "服从性测试",
+        "关系",
+        "回应大佬表",
+        "不拒绝"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "核心理论",
+      "heading": "值得警惕的信号",
+      "text": "- 白嫖党特征：只有语言没有行动，承诺多兑现少\n- 画饼特征：\"只要你生小孩就给1000w\"——先拿出500w再说\n- 低成本持有：不拒绝不主动不负责\n- 边缘化信息：不要被不重要的细节干扰判断",
+      "keywords": [
+        "信号",
+        "边缘化信息",
+        "值得警惕的",
+        "画饼特征",
+        "白嫖党特征",
+        "先拿出",
+        "不拒绝不主",
+        "扰判断",
+        "不要被不重",
+        "要的细节干",
+        "只有语言没",
+        "再说",
+        "低成本持有",
+        "只要你生小",
+        "动不负责",
+        "承诺多兑现",
+        "孩就给",
+        "有行动"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "总览",
+      "text": "name: 曲曲话术与案例\ndescription: 曲曲大女人实操话术模板、直播案例分析、场景化应对策略\ntype: reference\noriginSessionId: 57a86349-feb0-46cf-8c91-901e91e94467",
+      "keywords": [
+        "实操话术模",
+        "曲曲话术与",
+        "feb",
+        "type",
+        "description",
+        "originSessionId",
+        "总览",
+        "曲曲大女人",
+        "name",
+        "reference",
+        "场景化应对",
+        "案例",
+        "直播案例分",
+        "策略"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "话术总纲",
+      "text": "1. **语言是目的，行动是态度**——你说的话要服务于你的目标，不要被情绪带偏\n2. **嘴甜心硬**——嘴上可以软，心里要有数。嘴上吃亏没关系，实际利益不能少\n3. **正向引导，正向表达**——不要用反话威胁人，要用正向的话引导对方\n4. **语言引导从大到小，实际索取从小到大**——漫天要价落地还钱\n5. **造梦能力**——会造梦的人就能谈好恋爱和赚到钱\n6. **不说废话，说值钱的话**",
+      "keywords": [
+        "爱和赚到钱",
+        "你说的话要",
+        "造梦能力",
+        "漫天要价落",
+        "威胁人",
+        "心里要有数",
+        "嘴上吃亏没",
+        "带偏",
+        "小到大",
+        "话术总纲",
+        "要用正向的",
+        "地还钱",
+        "就能谈好恋",
+        "实际索取从",
+        "能少",
+        "会造梦的人",
+        "嘴上可以软",
+        "大到小",
+        "实际利益不",
+        "话引导对方",
+        "正向表达",
+        "服务于你的",
+        "嘴甜心硬",
+        "不要被情绪",
+        "不说废话",
+        "目标",
+        "语言是目的",
+        "行动是态度",
+        "关系",
+        "正向引导",
+        "不要用反话",
+        "说值钱的话",
+        "语言引导从"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "曲曲式说话风格",
+      "text": "- 结论先行，不绕弯子\n- 用最直白的话说最扎心的真相\n- 善用类比（做生意、打仗、博弈等比喻）\n- 语气狠但逻辑严丝合缝\n- 金句密集，一句话一个知识点",
+      "keywords": [
+        "的真相",
+        "不绕弯子",
+        "善用类比",
+        "结论先行",
+        "曲曲式说话",
+        "用最直白的",
+        "做生意",
+        "知识点",
+        "打仗",
+        "辑严丝合缝",
+        "风格",
+        "金句密集",
+        "语气狠但逻",
+        "一句话一个",
+        "话说最扎心",
+        "博弈等比喻"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "场景1：如何提出诉求（引导付出三段法）",
+      "text": "**第一段：浅植入**\n- 关系好的时候，平时不经意间植入\n- \"男人嘛，就应该让我貌美如花呀，就应该让我有米花呀，这样我可以在姐妹面前很有面子呀\"\n- 看到喜欢的东西：\"这个鞋子好好看呀，好适合我呀\"\n- 走过橱窗表现喜欢，但不要求买\n\n**第二段：表达理解**\n- 对方第一次没做的时候给缓冲\n- \"没关系，我知道你最近压力大，我能理解。你平时对我的爱我感受得到，这次没买没关系\"\n\n**第三段：坚持憧憬**\n- 表达理解后继续坚持\n- \"等下次你经济压力小了，再买呗\"\n- \"等发奖金的时候再给我买呗\"",
+      "keywords": [
+        "很有面子呀",
+        "没做的时候",
+        "间植入",
+        "第一段",
+        "等发奖金的",
+        "好看呀",
+        "济压力小了",
+        "得到",
+        "如何提出诉",
+        "第三段",
+        "引导付出三",
+        "走过橱窗表",
+        "近压力大",
+        "的爱我感受",
+        "就应该让我",
+        "貌美如花呀",
+        "对方第一次",
+        "这次没买没",
+        "坚持憧憬",
+        "平时不经意",
+        "但不要求买",
+        "买呗",
+        "我知道你最",
+        "这样我可以",
+        "给缓冲",
+        "关系好的时",
+        "看到喜欢的",
+        "现喜欢",
+        "段法",
+        "你平时对我",
+        "没关系",
+        "好适合我呀",
+        "男人嘛",
+        "这个鞋子好",
+        "东西",
+        "我能理解",
+        "关系",
+        "再买呗",
+        "等下次你经",
+        "场景",
+        "在姐妹面前",
+        "表达理解后",
+        "继续坚持",
+        "时候再给我",
+        "浅植入",
+        "表达理解",
+        "第二段",
+        "有米花呀"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "场景2：回应大佬表白（不答应不拒绝）",
+      "text": "大佬突然表白时的标准话术：\n> \"你这么优秀的男性能够欣赏我，我很开心，也很感激。但目前我没办法接受您的这份好意，因为我目前的重心放在工作上，我不希望我们变成这样的关系后影响我工作上面的发展。\"\n\n要点：不答应（保持独立性）+ 不拒绝（留有余地）+ 给理由（合情合理）",
+      "keywords": [
+        "合情合理",
+        "不答应",
+        "响我工作上",
+        "的重心放在",
+        "话术",
+        "留有余地",
+        "我不希望我",
+        "的男性能够",
+        "因为我目前",
+        "面的发展",
+        "们变成这样",
+        "保持独立性",
+        "不答应不拒",
+        "也很感激",
+        "但目前我没",
+        "我很开心",
+        "欣赏我",
+        "工作上",
+        "给理由",
+        "办法接受您",
+        "要点",
+        "大佬突然表",
+        "你这么优秀",
+        "的这份好意",
+        "回应大佬表",
+        "场景",
+        "不拒绝",
+        "白时的标准",
+        "的关系后影"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "场景3：制造暧昧信号",
+      "text": "**夸对方长相/头像**：\n> \"你的头像好帅呀，是本人吗？\"\n\n**创造见面机会**：\n> 在对方情绪上头时提出见面，对方不会接话时再结束聊天\n\n**特殊对待**：\n- 当着别人的面夸他\n- 背后夸他（能传到他耳朵更好）\n- 给对方特殊的小礼物，让他揣摩你是不是喜欢他",
+      "keywords": [
+        "创造见面机",
+        "让他揣摩你",
+        "帅呀",
+        "面夸他",
+        "对方不会接",
+        "夸对方长相",
+        "在对方情绪",
+        "聊天",
+        "特殊对待",
+        "当着别人的",
+        "背后夸他",
+        "话时再结束",
+        "是本人吗",
+        "给对方特殊",
+        "是不是喜欢",
+        "你的头像好",
+        "见面",
+        "头像",
+        "场景",
+        "朵更好",
+        "的小礼物",
+        "能传到他耳",
+        "制造暧昧信",
+        "上头时提出"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "场景4：服从性测试",
+      "text": "**方法**：撒娇语气+不方便的理由\n> \"我肚子好痛，走不了路，你可以帮我去买点东西吗？\"\n> （对方问是什么）\"卫生巾……\"\n> \"手好痛，拧不开瓶盖，能不能帮我呀？\"\n\n**进阶**：从生活小事到大事，逐步增加对方的投入",
+      "keywords": [
+        "方的投入",
+        "从生活小事",
+        "你可以帮我",
+        "手好痛",
+        "去买点东西",
+        "撒娇语气",
+        "逐步增加对",
+        "方法",
+        "我肚子好痛",
+        "走不了路",
+        "拧不开瓶盖",
+        "卫生巾",
+        "进阶",
+        "不方便的理",
+        "对方问是什",
+        "服从性测试",
+        "能不能帮我",
+        "场景",
+        "到大事"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "场景5：负面情绪表达",
+      "text": "**极度失望**：\n> \"我对你这么好，我要的不是这个结果……\"\n> 哭泣、冷漠、暴躁——让对方知道他的行为给你带来了伤害\n\n**惩罚**：\n> \"我以为你是懂我的，结果你让我这么失望……如果你真的在乎我，你应该知道怎么做\"\n\n**打压（涉及核心利益时）**：\n> \"你们家有皇位继承吗？\"\n> 注意：先夸一波再点，\"你工作能力确实很强，但家庭才是基石\"",
+      "keywords": [
+        "你应该知道",
+        "位继承吗",
+        "我以为你是",
+        "这么失望",
+        "在乎我",
+        "负面情绪表",
+        "确实很强",
+        "冷漠",
+        "极度失望",
+        "怎么做",
+        "涉及核心利",
+        "你们家有皇",
+        "他的行为给",
+        "懂我的",
+        "让对方知道",
+        "打压",
+        "先夸一波再",
+        "但家庭才是",
+        "基石",
+        "我要的不是",
+        "我对你这么",
+        "你带来了伤",
+        "注意",
+        "惩罚",
+        "这个结果",
+        "你工作能力",
+        "结果你让我",
+        "场景",
+        "暴躁",
+        "哭泣",
+        "益时",
+        "如果你真的"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "场景6：对方画饼时的应对",
+      "text": "**大饼识别话术**：\n> \"那你什么时候开始准备呢？\"\n> \"我们需要先把这个落实到具体步骤上来\"\n\n**回应\"只要你生小孩就给1000w\"**：\n> 内心：不要一听就高兴\n> 行动：先让他拿出500w再说",
+      "keywords": [
+        "把这个落实",
+        "先让他拿出",
+        "只要你生小",
+        "那你什么时",
+        "回应",
+        "内心",
+        "对方画饼时",
+        "上来",
+        "再说",
+        "不要一听就",
+        "的应对",
+        "行动",
+        "大饼识别话",
+        "我们需要先",
+        "孩就给",
+        "候开始准备",
+        "高兴",
+        "场景",
+        "到具体步骤"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "场景7：避免被白嫖",
+      "text": "**制造不确定性**：\n不要让他确定你喜欢他。让他猜、让他追、让他投入\n\n**拉长前期相处时间**：\n不是干等，而是在这个过程中不断展示价值，让对方思考\"需要付出多少才能拿下你\"\n\n**不要急于报价**：\n一上来就说需要对方做到什么程度，会把关系变成一锤子买卖",
+      "keywords": [
+        "一上来就说",
+        "避免被白嫖",
+        "让他投入",
+        "不是干等",
+        "不要急于报",
+        "让对方思考",
+        "不要让他确",
+        "处时间",
+        "需要付出多",
+        "拉长前期相",
+        "需要对方做",
+        "让他追",
+        "成一锤子买",
+        "定你喜欢他",
+        "制造不确定",
+        "让他猜",
+        "展示价值",
+        "会把关系变",
+        "过程中不断",
+        "场景",
+        "到什么程度",
+        "少才能拿下",
+        "而是在这个"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "场景8：正向表达vs反话",
+      "text": "**错误示范（说反话）**：\n> \"你现在就去找吧！\"——这种话威胁不到任何人，反而显得你low\n\n**正确示范（正向表达）**：\n> \"那不行的呢，我会很伤心的，我会活不下去的\"\n> ——这既表达了真实情感，又给出了情绪价值\n\n**目标导向**：你想和这个人锁死，说出来的话应该是\"我不愿意和他分开\"，而不是相反的",
+      "keywords": [
+        "你想和这个",
+        "他分开",
+        "去的",
+        "我会活不下",
+        "人锁死",
+        "low",
+        "正确示范",
+        "这既表达了",
+        "这种话威胁",
+        "目标导向",
+        "我会很伤心",
+        "反话",
+        "不到任何人",
+        "绪价值",
+        "正向表达",
+        "真实情感",
+        "你现在就去",
+        "说反话",
+        "那不行的呢",
+        "说出来的话",
+        "应该是",
+        "反而显得你",
+        "场景",
+        "错误示范",
+        "又给出了情",
+        "我不愿意和",
+        "而不是相反",
+        "找吧"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "场景9：社交破冰（加了大佬V后）",
+      "text": "**第一步**：先观察对方朋友圈，找到共同点\n**第二步**：以请教/求助开场（满足对方的权威感）\n**第三步**：适时展示你的价值，让对方觉得你有潜力\n**第四步**：维护关系，不要有问题才找",
+      "keywords": [
+        "找到共同点",
+        "适时展示你",
+        "满足对方的",
+        "不要有问题",
+        "社交破冰",
+        "第一步",
+        "加了大佬",
+        "以请教",
+        "先观察对方",
+        "维护关系",
+        "的价值",
+        "第三步",
+        "你有潜力",
+        "求助开场",
+        "让对方觉得",
+        "朋友圈",
+        "才找",
+        "场景",
+        "第四步",
+        "权威感",
+        "第二步"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "场景10：哄大哥/优质男",
+      "text": "**核心**：让他既想当爸爸（权威感），又想当儿子（少年感）\n- 爸爸：请教、求助、崇拜\n- 儿子：调侃、调皮、轻松的氛围\n\n**化小不化大**：开玩笑到边界外时，不要把事搞大。\"哎呀我开玩笑的嘛，你看你还当真了\"",
+      "keywords": [
+        "儿子",
+        "调侃",
+        "不要把事搞",
+        "崇拜",
+        "又想当儿子",
+        "调皮",
+        "界外时",
+        "核心",
+        "哄大哥",
+        "请教",
+        "让他既想当",
+        "求助",
+        "轻松的氛围",
+        "你看你还当",
+        "开玩笑到边",
+        "少年感",
+        "化小不化大",
+        "真了",
+        "哎呀我开玩",
+        "场景",
+        "爸爸",
+        "权威感",
+        "优质男",
+        "笑的嘛"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "关系认知",
+      "text": "- 关系的本质是交换。不要持有\"关系义务论\"\n- 不要找一个人要所有的东西，也不要找所有的人要一样的东西\n- 感情能走多远不是感情深浅决定的，是价值匹配决定的\n- 没有那么多所谓的真爱，有的只是需要和被需要\n- 别人对你的态度取决于你的实力，不是你的人品\n- 主动出让是经营高质量关系的智慧\n- 婚姻的本质不是爱情，是经济共同体\n- 感情和婚姻是两回事",
+      "keywords": [
+        "关系认知",
+        "不要找一个",
+        "是交换",
+        "婚姻的本质",
+        "深浅决定的",
+        "态度取决于",
+        "样的东西",
+        "是价值匹配",
+        "关系的本质",
+        "有的只是需",
+        "经营高质量",
+        "决定的",
+        "不是爱情",
+        "是两回事",
+        "不是你的人",
+        "人要所有的",
+        "你的实力",
+        "是经济共同",
+        "别人对你的",
+        "所谓的真爱",
+        "要和被需要",
+        "也不要找所",
+        "感情和婚姻",
+        "主动出让是",
+        "东西",
+        "感情能走多",
+        "远不是感情",
+        "关系义务论",
+        "有的人要一",
+        "没有那么多",
+        "不要持有",
+        "关系的智慧"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "自我认知",
+      "text": "- 女孩子要珍惜青春，要么置换能力和眼界，要么置换阶级跃迁\n- 不要心存侥幸，没有躺平的人生\n- 脑子永远是第一位的\n- 女生在商业社会里一定要有獠牙\n- 女人身段要软心要狠\n- 焦虑的反面是行动\n- 在人生低谷期追求的一定是翻盘，不是沉溺\n- 越是低谷，越要表现出欣欣向荣的样子（买涨不买跌）",
+      "keywords": [
+        "人生",
+        "越是低谷",
+        "样子",
+        "不要心存侥",
+        "不是沉溺",
+        "女孩子要珍",
+        "惜青春",
+        "社会里一定",
+        "欣欣向荣的",
+        "级跃迁",
+        "要有獠牙",
+        "期追求的一",
+        "越要表现出",
+        "第一位的",
+        "买涨不买跌",
+        "要么置换阶",
+        "女人身段要",
+        "在人生低谷",
+        "软心要狠",
+        "要么置换能",
+        "焦虑的反面",
+        "没有躺平的",
+        "力和眼界",
+        "脑子永远是",
+        "自我认知",
+        "是行动",
+        "女生在商业",
+        "定是翻盘"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "人性认知",
+      "text": "- 凡是不能作用于我的价值等于没有价值\n- 不要用纯粹的爱去理解人际关系\n- 人们会包容强者，不会同情弱者\n- 你犯的大多数错误都是因为顺应了自己的人性\n- 想成长就要对抗人性\n- 不要谈人品，用人性混江湖\n- 弱势思维的人难以交往的三个原因：情绪化、逻辑差、不理性",
+      "keywords": [
+        "不理性",
+        "你犯的大多",
+        "情绪化",
+        "值等于没有",
+        "的爱去理解",
+        "人性认知",
+        "不要用纯粹",
+        "凡是不能作",
+        "人际关系",
+        "弱势思维的",
+        "因为顺应了",
+        "数错误都是",
+        "自己的人性",
+        "想成长就要",
+        "用人性混江",
+        "强者",
+        "逻辑差",
+        "人难以交往",
+        "对抗人性",
+        "用于我的价",
+        "价值",
+        "的三个原因",
+        "不会同情弱",
+        "人们会包容",
+        "不要谈人品"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "搞钱认知",
+      "text": "- 赚钱的核心不是做事，是做局\n- 不好意思谈钱的人不适合做生意\n- 把话说好是营销自己最低成本的方式\n- 学再多不会卖也没用，信息转化也是能力\n- 被没有购买力的人认可毫无意义\n- 能够赚大钱的都是敢于做取舍的人\n- 想赚钱和想有钱是两回事\n- 消费观暴露了财运的好坏",
+      "keywords": [
+        "赚钱的核心",
+        "不好意思谈",
+        "的都是敢于",
+        "是能力",
+        "消费观暴露",
+        "做取舍的人",
+        "想赚钱和想",
+        "营销自己最",
+        "搞钱认知",
+        "力的人认可",
+        "学再多不会",
+        "有钱是两回",
+        "了财运的好",
+        "把话说好是",
+        "低成本的方",
+        "信息转化也",
+        "是做局",
+        "合做生意",
+        "卖也没用",
+        "钱的人不适",
+        "被没有购买",
+        "毫无意义",
+        "能够赚大钱",
+        "不是做事"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "恋爱初期",
+      "text": "**案例：如何判断眼前的男人值不值得**\n- 不看他说什么，看他做什么\n- 看他对你付出了什么（时间/金钱/情绪/资源）\n- 看他的付出是否有持续性\n- 看他对其他人的态度\n\n**案例：女生要主动吗？**\n- 主动不是问题，问题是不要显得廉价\n- 可以主动展示价值、主动创造机会\n- 但不要主动表白、主动送上门\n- 主动引导对方来追你\n\n**案例：如何引导优质男付出**\n- 不要一上来就报价\n- 先展示你的价值\n- 拉长前期相处时间\n- 让对方\"猜\"你值多少",
+      "keywords": [
+        "主动创造机",
+        "情绪",
+        "就报价",
+        "如何判断眼",
+        "显得廉价",
+        "问题是不要",
+        "时间",
+        "主动引导对",
+        "人的态度",
+        "案例",
+        "如何引导优",
+        "示价值",
+        "看他对其他",
+        "可以主动展",
+        "处时间",
+        "女生要主动",
+        "让对方",
+        "但不要主动",
+        "质男付出",
+        "看他对你付",
+        "是否有持续",
+        "你值多少",
+        "不看他说什",
+        "恋爱初期",
+        "拉长前期相",
+        "方来追你",
+        "出了什么",
+        "前的男人值",
+        "不值得",
+        "先展示你的",
+        "主动送上门",
+        "表白",
+        "资源",
+        "主动不是问",
+        "不要一上来",
+        "价值",
+        "金钱",
+        "看他做什么",
+        "看他的付出"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "关系推进",
+      "text": "**案例：怎么让大佬花米**\n- 选人比什么都重要——选对人再努力\n- 不要向不同的人要同样的东西\n- 先了解对方的付出习惯\n- 从小处着手，逐步引导\n\n**案例：推进关系引导付出**\n- 语言从大到小（开玩笑提大的）\n- 行动从小到大（实际从小的开始）\n- 确立目标+设置时长+培养习惯+植入需求+软硬兼施\n\n**案例：引导付出（话术）**\n- \"老公你说要给我买那个包包，我看中的那款最近在涨价呢，你不会让我错过吧？\"\n- \"你不是说要带我出去旅游吗？我看XX行程特别棒，要不趁这个假期？\"",
+      "keywords": [
+        "款最近在涨",
+        "错过吧",
+        "选人比什么",
+        "的付出习惯",
+        "给我买那个",
+        "都重要",
+        "的人要同样",
+        "逐步引导",
+        "花米",
+        "案例",
+        "假期",
+        "软硬兼施",
+        "话术",
+        "我看中的那",
+        "确立目标",
+        "实际从小的",
+        "行动从小到",
+        "的东西",
+        "带我出去旅",
+        "要不趁这个",
+        "植入需求",
+        "语言从大到",
+        "推进关系引",
+        "先了解对方",
+        "选对人再努",
+        "老公你说要",
+        "导付出",
+        "培养习惯",
+        "从小处着手",
+        "关系推进",
+        "开始",
+        "设置时长",
+        "你不是说要",
+        "游吗",
+        "价呢",
+        "行程特别棒",
+        "开玩笑提大",
+        "我看",
+        "引导付出",
+        "包包",
+        "怎么让大佬",
+        "你不会让我",
+        "不要向不同"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "危机处理",
+      "text": "**案例：遇到抠门男怎么办**\n- 判断是不是真的抠门还是消费观不同\n- 如果是不舍得为你付出，那就不是抠门的问题，是你不值得\n- 如果是格局问题，很难改变，建议及时止损\n\n**案例：对方承诺后反悔**\n- 给予适度的负面情绪（失望、难过）\n- \"为什么你承诺了却做不到呢？为什么不守信用呢？\"\n- 看对方的补救态度和行动\n- 如果多次反悔，考虑是否继续\n\n**案例：如何应对pua**\n- 提高辨识能力\n- PUA的核心是打压你的自我价值\n- 不要接对方的框架，守住自己的边界\n- 敢于说\"不\"，敢于离开\n\n**案例：被低成本持有怎么办**\n- 对方不拒绝不主动不负责\n- 制造稀缺性，减少可得性\n- 敢于提要求\n- 对方依然不行动 = 你不是他的优先级",
+      "keywords": [
+        "救态度和行",
+        "为什么不守",
+        "是你不值得",
+        "有怎么办",
+        "失望",
+        "问题",
+        "很难改变",
+        "敢于离开",
+        "负面情绪",
+        "敢于说",
+        "案例",
+        "如何应对",
+        "的核心是打",
+        "压你的自我",
+        "你不是他的",
+        "难过",
+        "对方依然不",
+        "制造稀缺性",
+        "真的抠门还",
+        "判断是不是",
+        "看对方的补",
+        "的框架",
+        "危机处理",
+        "给予适度的",
+        "怎么办",
+        "不要接对方",
+        "考虑是否继",
+        "诺了却做不",
+        "如果多次反",
+        "敢于提要求",
+        "减少可得性",
+        "行动",
+        "为什么你承",
+        "对方承诺后",
+        "得为你付出",
+        "如果是格局",
+        "被低成本持",
+        "pua",
+        "优先级",
+        "不主动不负",
+        "反悔",
+        "守住自己的",
+        "建议及时止",
+        "遇到抠门男",
+        "门的问题",
+        "边界",
+        "PUA",
+        "是消费观不",
+        "价值",
+        "提高辨识能",
+        "信用呢",
+        "对方不拒绝",
+        "如果是不舍",
+        "那就不是抠",
+        "到呢"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "分手挽回",
+      "text": "**案例：分手要清爽**\n- 不要纠缠，不要发小作文\n- 分手后不要立即求复合\n- 专注提升自己，让对方看到你的变化\n- 如果他回头，你有主动权；如果他不回头，你也有更好的选择\n\n**案例：什么时候适合发小作文**\n- 后撤或真正分手时发一次\n- 目的是表达感情，不是挽回\n- 发完就后撤，不要期待回复",
+      "keywords": [
+        "你的变化",
+        "分手后不要",
+        "如果他回头",
+        "不要期待回",
+        "的选择",
+        "案例",
+        "合发小作文",
+        "不要发小作",
+        "后撤或真正",
+        "专注提升自",
+        "你也有更好",
+        "感情",
+        "不要纠缠",
+        "让对方看到",
+        "分手挽回",
+        "不是挽回",
+        "立即求复合",
+        "分手时发一",
+        "什么时候适",
+        "发完就后撤",
+        "分手要清爽",
+        "如果他不回",
+        "目的是表达",
+        "你有主动权"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "特殊情境",
+      "text": "**案例：离异带娃如何找对象**\n- 重点是展示你的价值，而不是你的负担\n- 选择对孩子有包容度的人\n- 不要因为离异就降低标准\n- 你值得被好好对待\n\n**案例：大龄女生怎么找对象**\n- 心态上不着急\n- 扩大社交圈，增加接触量\n- 不要表现出\"恨嫁\"\n- 价值感是第一位的，年龄焦虑是第二位的\n\n**案例：曲曲分析富二代(话术案例)**\n- 富二代见的套路多，真诚反而更有效\n- 不要表现得贪得无厌\n- 表现出你的独特价值（不是所有人都冲着他的钱）\n- 建立长期关系需要让对方舒服\n\n**案例：面对多偶男**\n- 判断他是不是多偶属性\n- 如果确认是，要么接受游戏规则，要么离开\n- 不要试图改变一个多偶男\n- 你自己的利益永远是第一位的\n\n**案例：劈叉逻辑和贵人逻辑**\n- 劈叉（女性多线发展）：多个选择同时进行\n- 贵人逻辑：每个人都有可能成为你的贵人，保持开放心态\n- 不要把鸡蛋放在一个篮子里\n- 多条腿走路，增加选择权",
+      "keywords": [
+        "何找对象",
+        "贵人逻辑",
+        "不要因为离",
+        "子里",
+        "要么离开",
+        "保持开放心",
+        "如果确认是",
+        "异就降低标",
+        "多个选择同",
+        "离异带娃如",
+        "时进行",
+        "可能成为你",
+        "而不是你的",
+        "不要表现出",
+        "心态上不着",
+        "负担",
+        "曲曲分析富",
+        "案例",
+        "富二代见的",
+        "真诚反而更",
+        "要么接受游",
+        "的贵人",
+        "你的价值",
+        "判断他是不",
+        "一位的",
+        "贪得无厌",
+        "不是所有人",
+        "特殊情境",
+        "恨嫁",
+        "戏规则",
+        "价值感是第",
+        "表现出你的",
+        "建立长期关",
+        "劈叉逻辑和",
+        "不要把鸡蛋",
+        "有包容度的",
+        "年龄焦虑是",
+        "增加选择权",
+        "劈叉",
+        "二代",
+        "套路多",
+        "你值得被好",
+        "女性多线发",
+        "每个人都有",
+        "系需要让对",
+        "好对待",
+        "第二位的",
+        "都冲着他的",
+        "放在一个篮",
+        "益永远是第",
+        "独特价值",
+        "面对多偶男",
+        "有效",
+        "不要试图改",
+        "方舒服",
+        "变一个多偶",
+        "话术案例",
+        "你自己的利",
+        "多条腿走路",
+        "增加接触量",
+        "选择对孩子",
+        "重点是展示",
+        "不要表现得",
+        "么找对象",
+        "扩大社交圈",
+        "是多偶属性",
+        "大龄女生怎"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "内容配比",
+      "text": "- 30% 照片（自拍、具象画像）\n- 50% 沉淀（经历、向阳思考、和目标客户产生熟悉感）\n- 20% 日常（轻松的内容，不要发emo）",
+      "keywords": [
+        "内容配比",
+        "不要发",
+        "向阳思考",
+        "emo",
+        "沉淀",
+        "轻松的内容",
+        "具象画像",
+        "照片",
+        "自拍",
+        "产生熟悉感",
+        "和目标客户",
+        "经历",
+        "日常"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "高级朋友圈营销",
+      "text": "1. **少发硬广，多植软广**\n   - 从自身出发，反省自己，迭代自己\n   - 通过资源的牵引和裂变\n   - 一点点沁润，潜移默化\n\n2. **少讲功能，多讲场景**\n   - 不要介绍\"产品有什么功能\"\n   - 要讲\"用了之后生活会变成什么样\"\n\n3. **少做介绍，多抓欲望**\n   - 不要直接说\"我是什么人\"\n   - 要呈现\"你也能成为这样的人\"\n\n4. **写朋友圈的第一目的不是让人看见**\n   - 而是沉淀自己、自我总结、自我迭代\n   - 这样被关注才是水到渠成",
+      "keywords": [
+        "这样的人",
+        "我是什么人",
+        "少发硬广",
+        "这样被关注",
+        "不要直接说",
+        "一点点沁润",
+        "才是水到渠",
+        "多讲场景",
+        "高级朋友圈",
+        "活会变成什",
+        "么样",
+        "而是沉淀自",
+        "迭代自己",
+        "多植软广",
+        "不要介绍",
+        "自我总结",
+        "第一目的不",
+        "牵引和裂变",
+        "要讲",
+        "多抓欲望",
+        "要呈现",
+        "通过资源的",
+        "产品有什么",
+        "少做介绍",
+        "从自身出发",
+        "营销",
+        "少讲功能",
+        "反省自己",
+        "自我迭代",
+        "功能",
+        "你也能成为",
+        "用了之后生",
+        "写朋友圈的",
+        "是让人看见",
+        "潜移默化"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "话术与案例",
+      "heading": "朋友圈雷区",
+      "text": "- 不要发负能量（emo内容）\n- 不要总发硬广\n- 不要让人感觉你是微商\n- 保持高端、积极、有价值的人设",
+      "keywords": [
+        "不要让人感",
+        "保持高端",
+        "内容",
+        "emo",
+        "不要总发硬",
+        "觉你是微商",
+        "朋友圈雷区",
+        "有价值的人",
+        "积极",
+        "不要发负能"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "总览",
+      "text": "name: 曲曲沟通风格与金句\ndescription: 曲曲大女人独特沟通风格、语气规则、680句精选金句\ntype: reference\noriginSessionId: 57a86349-feb0-46cf-8c91-901e91e94467",
+      "keywords": [
+        "type",
+        "语气规则",
+        "格与金句",
+        "description",
+        "总览",
+        "originSessionId",
+        "曲曲大女人",
+        "name",
+        "reference",
+        "feb",
+        "曲曲沟通风",
+        "句精选金句",
+        "独特沟通风"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "核心风格标签",
+      "text": "- **人间清醒**——不灌鸡汤，不说废话，只讲最赤裸的现实\n- **狠人逻辑**——一切目标导向，情绪是为目标服务的工具\n- **生意人思维**——把感情当生意做，每一步都要算ROI\n- **江湖气**——不装，不端，有啥说啥，接地气但不low\n- **犀利导师**——语气狠但逻辑严丝合缝，话难听但有用",
+      "keywords": [
+        "核心风格标",
+        "江湖气",
+        "不灌鸡汤",
+        "辑严丝合缝",
+        "标服务的工",
+        "ROI",
+        "只讲最赤裸",
+        "语气狠但逻",
+        "不装",
+        "情绪是为目",
+        "low",
+        "人间清醒",
+        "狠人逻辑",
+        "每一步都要",
+        "犀利导师",
+        "一切目标导",
+        "不端",
+        "有啥说啥",
+        "的现实",
+        "意做",
+        "话难听但有",
+        "把感情当生",
+        "生意人思维",
+        "接地气但不",
+        "不说废话"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "与谢胜子的核心区别",
+      "text": "| 维度 | 曲曲 | 谢胜子 |\n|------|------|--------|\n| 领域 | 两性关系/情感博弈 | 个人IP/自媒体创业 |\n| 风格 | 犀利狠辣、江湖气 | 结构化、学院派 |\n| 语言 | 直白、扎心、口语化 | 框架感、方法论 |\n| 态度 | \"你醒醒吧\" | \"我们来拆解一下\" |\n| 底层 | 人性博弈+利益交换 | 认知升级+品牌构建 |\n| 比喻 | 做生意/打仗/打牌 | 电子杂志/修行/体系 |\n| 金句密度 | 极高，一句话一个观点 | 中等，重在框架 |",
+      "keywords": [
+        "学院派",
+        "重在框架",
+        "底层",
+        "江湖气",
+        "体系",
+        "与谢胜子的",
+        "结构化",
+        "极高",
+        "打牌",
+        "修行",
+        "领域",
+        "利益交换",
+        "自媒体创业",
+        "品牌构建",
+        "语言",
+        "口语化",
+        "中等",
+        "电子杂志",
+        "两性关系",
+        "观点",
+        "扎心",
+        "一句话一个",
+        "打仗",
+        "框架感",
+        "犀利狠辣",
+        "情感博弈",
+        "你醒醒吧",
+        "比喻",
+        "个人",
+        "我们来拆解",
+        "做生意",
+        "谢胜子",
+        "人性博弈",
+        "曲曲",
+        "风格",
+        "金句密度",
+        "方法论",
+        "一下",
+        "维度",
+        "态度",
+        "核心区别",
+        "认知升级",
+        "直白"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "曲式经典表达方式",
+      "text": "1. **结论先行不废话**：\"好，我告诉你这件事的本质是什么……\"\n2. **反问扎心**：\"你是不是傻？\"\"你以为你是谁？\"\"你凭什么？\"\n3. **类比生动**：把感情变成做生意、打牌、打仗、做项目\n4. **金句连连**：几乎每一句都是可以单独摘出来发朋友圈的\n5. **不给面子**：不哄着你，不惯着你，该骂就骂\n6. **价值判断强烈**：没有灰色地带，\"对的\"\"错的\"\"值不值得\"\n7. **实操具体**：不说\"你要有框架\"，而是教你怎么说怎么做",
+      "keywords": [
+        "你以为你是",
+        "值不值得",
+        "不哄着你",
+        "曲式经典表",
+        "不给面子",
+        "独摘出来发",
+        "你凭什么",
+        "达方式",
+        "打牌",
+        "废话",
+        "错的",
+        "件事的本质",
+        "对的",
+        "实操具体",
+        "都是可以单",
+        "不说",
+        "反问扎心",
+        "而是教你怎",
+        "价值判断强",
+        "打仗",
+        "金句连连",
+        "你是不是傻",
+        "是什么",
+        "做项目",
+        "我告诉你这",
+        "做生意",
+        "结论先行不",
+        "几乎每一句",
+        "你要有框架",
+        "么说怎么做",
+        "不惯着你",
+        "把感情变成",
+        "没有灰色地",
+        "朋友圈的",
+        "类比生动",
+        "该骂就骂"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "说话方式",
+      "text": "- 像大姐大在教小妹妹，不是说教，是**点醒**\n- 语气要狠但要有**温度**——不是冷血，是让你清醒\n- 多用反问句：\"你图什么？\"\"你觉得可能吗？\"\n- 偶尔可以用\"乖\"\"宝贝\"拉近距离",
+      "keywords": [
+        "拉近距离",
+        "你图什么",
+        "温度",
+        "是让你清醒",
+        "要有",
+        "语气要狠但",
+        "点醒",
+        "不是冷血",
+        "教小妹妹",
+        "偶尔可以用",
+        "像大姐大在",
+        "宝贝",
+        "多用反问句",
+        "你觉得可能",
+        "不是说教",
+        "说话方式"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "风格调性",
+      "text": "- 极度直接，不绕弯子\n- 有强烈的价值判断（这是对的，那是错的）\n- 用最直白的话说最扎心的真相\n- 带着一定的江湖气息",
+      "keywords": [
+        "的真相",
+        "有强烈的价",
+        "不绕弯子",
+        "极度直接",
+        "用最直白的",
+        "那是错的",
+        "带着一定的",
+        "这是对的",
+        "风格调性",
+        "值判断",
+        "话说最扎心",
+        "江湖气息"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "内容结构",
+      "text": "- 先抛出核心结论（一句话说透本质）\n- 再拆解逻辑（为什么是这样）\n- 最后给实操建议（你应该怎么做）\n- 多用\"我告诉你\"\"你记住\"\"听我的\"",
+      "keywords": [
+        "你应该怎么",
+        "先抛出核心",
+        "一句话说透",
+        "为什么是这",
+        "内容结构",
+        "你记住",
+        "最后给实操",
+        "多用",
+        "本质",
+        "我告诉你",
+        "结论",
+        "听我的",
+        "建议",
+        "再拆解逻辑"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "标志性语气词",
+      "text": "- \"好，我跟你拆解一下……\"\n- \"我告诉你，这个事的本质是……\"\n- \"你说你这是何必呢？\"\n- \"你记住一句话……\"\n- \"你醒了吗？\"\n- \"乖，听我的……\"",
+      "keywords": [
+        "你醒了吗",
+        "一下",
+        "你记住一句",
+        "质是",
+        "这个事的本",
+        "标志性语气",
+        "何必呢",
+        "我跟你拆解",
+        "我告诉你",
+        "听我的",
+        "你说你这是"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "核心特点",
+      "text": "- 话难听但有用——不是来讨好你的\n- 绝不打鸡血——每一句都是实操\n- 不制造焦虑——直接给解决方案\n- 尊重现实——不教你做梦，教你办事",
+      "keywords": [
+        "话难听但有",
+        "直接给解决",
+        "不是来讨好",
+        "方案",
+        "核心特点",
+        "教你办事",
+        "尊重现实",
+        "绝不打鸡血",
+        "你的",
+        "不教你做梦",
+        "每一句都是",
+        "实操",
+        "不制造焦虑"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "关系本质类",
+      "text": "1. 关系的本质是交换\n2. 凡是不能作用于我的价值等于没有价值\n3. 拿不起的选项不叫选项\n4. 不要觉得自己是特别的那一个，不要拿小概率事件往自己身上套\n5. 一切为我所用，一切为我赋能\n6. 被看见是被选择的第一步\n7. 语言是目的，行动是态度\n8. 感情能走多远不是感情深浅决定的\n9. 你改变不了任何人，你只能改变你自己\n10. 男人是渠道，情感是技能",
+      "keywords": [
+        "是交换",
+        "值等于没有",
+        "己身上套",
+        "深浅决定的",
+        "不要拿小概",
+        "项不叫选项",
+        "凡是不能作",
+        "关系的本质",
+        "己是特别的",
+        "男人是渠道",
+        "那一个",
+        "拿不起的选",
+        "一切为我所",
+        "一切为我赋",
+        "你自己",
+        "你只能改变",
+        "你改变不了",
+        "任何人",
+        "关系本质类",
+        "语言是目的",
+        "行动是态度",
+        "感情能走多",
+        "远不是感情",
+        "被看见是被",
+        "用于我的价",
+        "价值",
+        "选择的第一",
+        "情感是技能",
+        "率事件往自",
+        "不要觉得自"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "强者思维类",
+      "text": "11. 不要为无法验证的事情辩驳，不要为无法改变的事情焦虑\n12. 你的核心诉求是什么？不要被边缘化信息影响\n13. 遇到问题解决问题，不预设问题\n14. 一件事只能罚一次，罚完了要么撤退，要么翻篇\n15. 你唯一的执念应该是让自己变得更好\n16. 永远不要指望对方主动给你加码\n17. 行动推动决策\n18. 不是找到正确的选项，而是让选择变正确\n19. 强者心态是把付出看作投资，弱者心态是把付出看作牺牲\n20. 改掉站着要的毛病",
+      "keywords": [
+        "罚一次",
+        "焦虑",
+        "的毛病",
+        "不预设问题",
+        "永远不要指",
+        "弱者心态是",
+        "验证的事情",
+        "给你加码",
+        "强者思维类",
+        "不要被边缘",
+        "求是什么",
+        "不是找到正",
+        "你唯一的执",
+        "而是让选择",
+        "罚完了要么",
+        "不要为无法",
+        "遇到问题解",
+        "辩驳",
+        "念应该是让",
+        "牺牲",
+        "确的选项",
+        "投资",
+        "化信息影响",
+        "改变的事情",
+        "撤退",
+        "行动推动决",
+        "决问题",
+        "一件事只能",
+        "强者心态是",
+        "要么翻篇",
+        "你的核心诉",
+        "改掉站着要",
+        "自己变得更",
+        "望对方主动",
+        "把付出看作",
+        "变正确"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "情绪价值类",
+      "text": "21. 情绪价值不是一味的顺从，也有负面情绪价值\n22. 情绪价值遵从二八定律：80%正面+20%负面\n23. 正面情绪价值包括：赞美、接纳弱点、安抚与鼓励\n24. 赞美需要真诚感+细节感\n25. 高端大气上档次不如一哭二闹三上吊\n26. 皮筋理论：正面情绪拉满，负面情绪弹回\n27. 不敢用负面情绪，要么是正面没给够，要么是自己太自卑\n28. 越是面对高价值的人，情绪价值越是核心竞争力",
+      "keywords": [
+        "情绪价值越",
+        "情绪",
+        "细节感",
+        "皮筋理论",
+        "要么是正面",
+        "接纳弱点",
+        "值包括",
+        "从二八定律",
+        "是一味的顺",
+        "太自卑",
+        "赞美需要真",
+        "也有负面情",
+        "正面情绪拉",
+        "不敢用负面",
+        "安抚与鼓励",
+        "赞美",
+        "情绪价值遵",
+        "负面",
+        "情绪价值不",
+        "档次不如一",
+        "绪价值",
+        "高端大气上",
+        "是核心竞争",
+        "正面情绪价",
+        "没给够",
+        "哭二闹三上",
+        "诚感",
+        "负面情绪弹",
+        "越是面对高",
+        "要么是自己",
+        "价值的人",
+        "正面",
+        "情绪价值类"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "向上社交类",
+      "text": "29. 社交一定要带着交易的目的和属性\n30. 我没权没势不等于提供不了价值\n31. 不要展现边缘价值，要展现硬核价值\n32. 不要急于报价，不要过快透露底牌\n33. 拉长前期相处时间，让对方思考你的价值\n34. 当自己没有站到一定层级，是不需要低调的\n35. 越是优质的人对价格越不敏感\n36. 求同是弱于对方的，存异才是升华关系的\n37. 不要挑战对方的权威\n38. 不要展现太强社交属性",
+      "keywords": [
+        "不要过快透",
+        "不要挑战对",
+        "社交一定要",
+        "露底牌",
+        "你的价值",
+        "让对方思考",
+        "是不需要低",
+        "缘价值",
+        "当自己没有",
+        "处时间",
+        "存异才是升",
+        "调的",
+        "越是优质的",
+        "华关系的",
+        "对方的",
+        "拉长前期相",
+        "求同是弱于",
+        "带着交易的",
+        "不敏感",
+        "不等于提供",
+        "人对价格越",
+        "目的和属性",
+        "我没权没势",
+        "不要展现太",
+        "强社交属性",
+        "要展现硬核",
+        "方的权威",
+        "不要展现边",
+        "价值",
+        "站到一定层",
+        "不要急于报",
+        "向上社交类",
+        "不了价值"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "防白嫖类",
+      "text": "39. 被光环迷惑的宿命就是韭菜\n40. 不要因为对方是大佬就冲上去倒贴\n41. 制造不确定性，让对方猜你喜欢不喜欢他\n42. 不确定的关系维持越久，才能见到更多大佬\n43. 一开始让人吃定你，就会成为附属品\n44. 服从性测试：从小请求开始培养习惯\n45. 不要急于确定关系\n46. 永远不会被珍惜的三种人：随叫随到、百依百顺、毫无保留",
+      "keywords": [
+        "多大佬",
+        "的宿命就是",
+        "一开始让人",
+        "喜欢不喜欢",
+        "就会成为附",
+        "让对方猜你",
+        "属品",
+        "方是大佬就",
+        "从小请求开",
+        "定关系",
+        "系维持越久",
+        "才能见到更",
+        "不要急于确",
+        "防白嫖类",
+        "永远不会被",
+        "不要因为对",
+        "制造不确定",
+        "吃定你",
+        "韭菜",
+        "始培养习惯",
+        "服从性测试",
+        "百依百顺",
+        "珍惜的三种",
+        "不确定的关",
+        "被光环迷惑",
+        "冲上去倒贴",
+        "随叫随到",
+        "毫无保留"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "搞钱认知类",
+      "text": "47. 赚钱的本质就是买和卖\n48. 信息差是搞钱的第一性原理\n49. 不要害怕错过风口，风口永远有\n50. 坚持农耕逻辑，摒弃游牧思维\n51. 当不了冠军，可以当季军，多维度差异化竞争\n52. 价格战就是死局\n53. 焦虑的反义词是具体\n54. 不好意思谈钱的人不适合做生意\n55. 被没有购买力的人认可毫无意义\n56. 能够赚大钱的都是敢于做取舍的人\n57. 想赚钱和想有钱是两回事",
+      "keywords": [
+        "当不了冠军",
+        "摒弃游牧思",
+        "多维度差异",
+        "不好意思谈",
+        "的都是敢于",
+        "焦虑的反义",
+        "搞钱认知类",
+        "做取舍的人",
+        "过风口",
+        "信息差是搞",
+        "词是具体",
+        "想赚钱和想",
+        "风口永远有",
+        "力的人认可",
+        "不要害怕错",
+        "就是买和卖",
+        "有钱是两回",
+        "赚钱的本质",
+        "价格战就是",
+        "死局",
+        "原理",
+        "合做生意",
+        "被没有购买",
+        "钱的人不适",
+        "毫无意义",
+        "能够赚大钱",
+        "可以当季军",
+        "坚持农耕逻",
+        "化竞争",
+        "钱的第一性"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "女性成长类",
+      "text": "58. 女孩子要珍惜青春，这不是一句废话\n59. 你在低谷的时候，要让所有人觉得你过得很好\n60. 买涨不买跌，人际交往也一样\n61. 女人身段要软心要狠\n62. 女生在商业社会里一定要有獠牙\n63. 脑子永远是第一位的\n64. 不要心存侥幸，没有躺平的人生\n65. 美丽加技能并不是王炸，单出更是死局\n66. 学会表露真实情感，不要说反话\n67. 不要用纯粹的爱去理解人际关系\n68. 人们会包容强者，不会同情弱者\n69. 你犯的大多数错误都是因为顺应了自己的人性\n70. 想成长就要对抗人性",
+      "keywords": [
+        "实情感",
+        "你犯的大多",
+        "人生",
+        "你在低谷的",
+        "时候",
+        "的爱去理解",
+        "学会表露真",
+        "不要用纯粹",
+        "废话",
+        "人际关系",
+        "并不是王炸",
+        "不要心存侥",
+        "因为顺应了",
+        "人际交往也",
+        "女孩子要珍",
+        "惜青春",
+        "觉得你过得",
+        "社会里一定",
+        "不要说反话",
+        "数错误都是",
+        "自己的人性",
+        "想成长就要",
+        "要有獠牙",
+        "美丽加技能",
+        "第一位的",
+        "买涨不买跌",
+        "要让所有人",
+        "强者",
+        "女性成长类",
+        "这不是一句",
+        "女人身段要",
+        "一样",
+        "软心要狠",
+        "没有躺平的",
+        "很好",
+        "单出更是死",
+        "对抗人性",
+        "脑子永远是",
+        "不会同情弱",
+        "女生在商业",
+        "人们会包容"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "处事智慧类",
+      "text": "71. 不要和烂人烂事纠缠\n72. 一件事不知道该不该做就不做，一句话不知道该不该说就不说\n73. 世界上没有对错，只有强弱\n74. 弱的时候不要对他人有太多期待\n75. 真正的吃苦不是体力上的苦，是思考的苦\n76. 保护好自己的能量\n77. 大众认为的正确不会让你活得很好\n78. 少有人走的路才是正确的路\n79. 你是你人生的唯一负责人\n80. 真正的自信不是浮于表面的财富，而是深藏于心的能力",
+      "keywords": [
+        "要对他人有",
+        "就不做",
+        "只有强弱",
+        "道该不该说",
+        "的苦",
+        "的唯一负责",
+        "面的财富",
+        "真正的吃苦",
+        "太多期待",
+        "保护好自己",
+        "大众认为的",
+        "的路",
+        "正确不会让",
+        "对错",
+        "弱的时候不",
+        "路才是正确",
+        "而是深藏于",
+        "烂事纠缠",
+        "不是浮于表",
+        "道该不该做",
+        "是思考的苦",
+        "处事智慧类",
+        "一件事不知",
+        "你是你人生",
+        "就不说",
+        "不是体力上",
+        "一句话不知",
+        "的能量",
+        "真正的自信",
+        "世界上没有",
+        "心的能力",
+        "你活得很好",
+        "不要和烂人",
+        "少有人走的"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "经典金句（每句可单独作为内容输出）",
+      "text": "81. \"爱的前提是自爱，自爱的前提是自私\"\n82. \"这世界上的任何一个人，他想要为一个人投入米的时候，里边一定掺杂着控制的成分\"\n83. \"语言是目的，行动是态度\"\n84. \"不要看他怎么说，看他怎么做\"\n85. \"拿不起的选项不叫选项\"\n86. \"不为你花钱的人一定不爱你，但为你花钱的人也不一定爱你\"\n87. \"王子永远不会选择灰姑娘\"\n88. \"人的一切痛苦都来自于对自己无能的愤怒\"\n89. \"所有的关系都是一场赌博\"\n90. \"你的天花板是由你的圈子决定的\"",
+      "keywords": [
+        "你的天花板",
+        "任何一个人",
+        "的人也不一",
+        "是由你的圈",
+        "每句可单独",
+        "这世界上的",
+        "爱的前提是",
+        "苦都来自于",
+        "自爱",
+        "项不叫选项",
+        "自爱的前提",
+        "看他怎么做",
+        "么说",
+        "拿不起的选",
+        "都是一场赌",
+        "杂着控制的",
+        "成分",
+        "所有的关系",
+        "不要看他怎",
+        "定爱你",
+        "爱你",
+        "会选择灰姑",
+        "个人投入米",
+        "是自私",
+        "的愤怒",
+        "作为内容输",
+        "但为你花钱",
+        "王子永远不",
+        "人的一切痛",
+        "对自己无能",
+        "的时候",
+        "语言是目的",
+        "行动是态度",
+        "的人一定不",
+        "他想要为一",
+        "里边一定掺",
+        "子决定的",
+        "经典金句",
+        "不为你花钱"
+      ]
+    },
+    {
+      "person": "曲曲",
+      "domain": "沟通风格与金句",
+      "heading": "四、曲曲的底层世界观",
+      "text": "曲曲的所有言论可以归纳为十几个字：\n\n**\"一切都是生意，一切都是交换，一切都是博弈。\"**\n\n在这个世界观下：\n- 感情 = 情绪价值+物质价值的交换体系\n- 关系 = 持续博弈的竞技场\n- 人生 = 不断积累筹码的游戏\n- 社交 = 资源置换的平台\n- 婚姻 = 经济共同体+权利义务关系\n\n这不是冷血，这是**人间清醒**。\n\n曲曲的言论之所以让很多人不适，不是因为她说的不对，而是因为她把大多数人不敢说破的真相说破了。",
+      "keywords": [
+        "曲曲的所有",
+        "人生",
+        "不是因为她",
+        "言论可以归",
+        "社交",
+        "情绪价值",
+        "权利义务关",
+        "码的游戏",
+        "经济共同体",
+        "人间清醒",
+        "在这个世界",
+        "观下",
+        "这是",
+        "交换体系",
+        "世界观",
+        "不敢说破的",
+        "感情",
+        "婚姻",
+        "说的不对",
+        "竞技场",
+        "把大多数人",
+        "真相说破了",
+        "不断积累筹",
+        "纳为十几个",
+        "之所以让很",
+        "平台",
+        "一切都是博",
+        "多人不适",
+        "关系",
+        "资源置换的",
+        "一切都是交",
+        "这不是冷血",
+        "曲曲的言论",
+        "物质价值的",
+        "一切都是生",
+        "而是因为她",
+        "曲曲的底层",
+        "持续博弈的"
+      ]
+    }
+  ]
+};
+
+function tokenize(text) {
+    const tokens = new Set();
+    const chineseMatches = text.match(/[一-鿿]{2,5}/g) || [];
+    for (const seq of chineseMatches) {
+        for (let i = 0; i < seq.length; i++) {
+            for (let j = i + 2; j <= Math.min(i + 4, seq.length + 1); j++) {
+                tokens.add(seq.substring(i, j));
+            }
+        }
+    }
+    const engMatches = text.match(/[a-zA-Z]{2,}/g) || [];
+    for (const e of engMatches) tokens.add(e.toLowerCase());
+    const numMatches = text.match(/\d+/g) || [];
+    for (const n of numMatches) tokens.add(n);
+    return tokens;
+}
+
+function searchKnowledge(query, person, topK) {
+    const queryTokens = tokenize(query);
+    if (queryTokens.size === 0) return [];
+
+    const persons = person === 'all' ? ['谢胜子', '曲曲'] : [person];
+    const scored = [];
+
+    for (const p of persons) {
+        const entries = KNOWLEDGE_BASE[p] || [];
+        for (const entry of entries) {
+            const entryTokens = new Set(entry.keywords || []);
+            let overlap = 0;
+            for (const t of queryTokens) {
+                if (entryTokens.has(t)) overlap++;
+            }
+            if (overlap > 0) {
+                let score = overlap * (1 + 0.5 * overlap);
+                const headingTokens = tokenize(entry.heading || '');
+                let headingOverlap = 0;
+                for (const t of queryTokens) {
+                    if (headingTokens.has(t)) headingOverlap++;
+                }
+                score += headingOverlap * 3;
+                scored.push({ score, entry, person: p });
+            }
+        }
+    }
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, topK || 5);
+}
+
+function formatReply(results, person) {
+    var noMsgs = {
+        '谢胜子': '这个问题问得很好，但我知识库里暂时没有直接对应的内容。不过我可以从底层逻辑给你推演——你先说说你具体遇到什么场景了？我来帮你分析。',
+        '曲曲': '我跟你说，你这个问题吧，不是没有答案，是你问的方式不对。你先告诉我你具体什么情况，越具体越好，我才能给你拆解。别给我整虚的，直接说事。'
+    };
+    if (!results || results.length === 0) {
+        return { reply: noMsgs[person] || '没找到相关内容。', references: [] };
+    }
+
+    var references = [];
+    var seenDomains = {};
+    for (var i = 0; i < results.length; i++) {
+        var d = results[i].entry.domain;
+        if (!seenDomains[d]) { seenDomains[d] = true; references.push({ domain: d, heading: results[i].entry.heading }); }
+    }
+
+    function cleanLine(l) { return l.replace(/^[-*#]+ /, '').replace(/\*\*(.+?)\*\*/g, '$1').trim(); }
+
+    if (person === '谢胜子') {
+        var parts = [];
+        var opens = ['好，这个问题值得认真拆解。我来帮你梳理一下思路。\n\n', '这个问题问得好。我给你从几个维度来分析。\n\n', '好，我们来把这个事情拆开来看。\n\n'];
+        parts.push(opens[Math.floor(Math.random() * opens.length)]);
+
+        var used = 0;
+        for (var i = 0; i < results.length && used < 3; i++) {
+            var r = results[i];
+            var txt = r.entry.text || '';
+            var hd = r.entry.heading || '';
+            if (hd === '总览' || txt.length < 40) continue;
+            used++;
+
+            var ls = txt.split('\n').filter(function(l) { return l.trim() && !l.startsWith('---') && !l.startsWith('['); });
+            if (hd && hd !== '总览') {
+                var intros = ['先说' + hd + '：\n', '关于' + hd + '，我是这么看的：\n', '这里有一个关键概念叫\"' + hd + '\"：\n'];
+                parts.push(intros[Math.floor(Math.random() * intros.length)]);
+            }
+
+            var content = '';
+            for (var j = 0; j < ls.length && j < 10; j++) {
+                if (j > 0) content += '\n';
+                content += cleanLine(ls[j]);
+            }
+            if (content.length > 700) content = content.substring(0, 700) + '……';
+            parts.push(content + '\n\n');
+        }
+
+        var connects = ['你发现没有？这几个维度其实是层层递进的。先理解本质，再谈方法。\n\n', '所以你看，这背后有一条清晰的逻辑线。我建议你把这个框架记住。\n\n'];
+        parts.push(connects[Math.floor(Math.random() * connects.length)]);
+
+        var closes = ['好，今天就先聊到这儿。你先消化一下，有问题随时来问我。', '你懂我意思吧？方法都对，关键是执行。你先做起来，遇到卡点再来找我。', '说白了，这些都是经过验证的方法论。但一定要结合你自己的赛道来落地。'];
+        parts.push(closes[Math.floor(Math.random() * closes.length)]);
+
+        return { reply: parts.join(''), references: references };
+    }
+
+    // ===== 曲曲 =====
+    var parts = [];
+    var opens = ['好，我告诉你这个事的本质是什么。\n\n', '来，我给你说明白了——\n\n', '你听好了。\n\n'];
+    parts.push(opens[Math.floor(Math.random() * opens.length)]);
+
+    var best = results[0];
+    var txt = best.entry.text || '';
+    var ls = txt.split('\n').filter(function(l) { return l.trim() && !l.startsWith('---'); });
+    var cleanLines = [];
+    for (var i = 0; i < ls.length && i < 10; i++) {
+        var cl = cleanLine(ls[i]);
+        if (cl.length > 6) cleanLines.push(cl);
+    }
+    if (cleanLines.length > 0) parts.push(cleanLines.join('\n') + '\n\n');
+
+    var zingers = ['你是不是也觉得这事儿没那么复杂？说白了，就是你想太多了。\n\n', '你说你这是何必呢？非要把简单的事情搞复杂。\n\n', '你醒了吗？这个逻辑没想通，后面说什么都是白搭。\n\n'];
+    parts.push(zingers[Math.floor(Math.random() * zingers.length)]);
+
+    if (results.length > 1) {
+        var txt2 = results[1].entry.text || '';
+        var ls2 = txt2.split('\n').filter(function(l) { return l.trim() && !l.startsWith('-') && !l.startsWith('*') && l.length > 10; });
+        if (ls2.length > 0) {
+            parts.push('我再给你补一句——\n');
+            parts.push(ls2.slice(0, 4).join('\n') + '\n\n');
+        }
+    }
+
+    var closes = ['你记住，这事儿没有对错，只有强弱。你自己想想是不是这个理儿。', '听我的，别在这个问题上纠结了。你把精力放在提升自己上，比什么都强。', '我话讲完了。能听进去多少，看你自己的悟性。'];
+    parts.push(closes[Math.floor(Math.random() * closes.length)]);
+
+    return { reply: parts.join(''), references: references };
+}
+    // ============================================================
+    // UI Functions
+    // ============================================================
+    const suggestions = {
+        '谢胜子': [
+            '个人IP怎么做？',
+            '小红书封面怎么设计？',
+            '如何找到自己的赛道？',
+            '知识付费怎么定价？',
+            '怎样才能持续输出内容？'
+        ],
+        '曲曲': [
+            '关系的本质是什么？',
+            '怎么引导男人付出？',
+            '怎样向上社交？',
+            '如何避免被白嫖？',
+            '男朋友抠门怎么办？'
+        ]
+    };
+    const descs = {
+        '谢胜子': { avatar: '📚', name: '谢胜子', desc: '自媒体创业 · 个人IP · 平台策略',
+            welcome: '把你的问题抛给我，我用方法论帮你拆解。每条回复都基于我的课程知识体系。',
+            bg: '#FDF8F3' },
+        '曲曲': { avatar: '🔥', name: '曲曲大女人', desc: '两性关系 · 人性博弈 · 向上社交',
+            welcome: '有啥问题直接说，别绕弯子。我说话不好听，但有用。',
+            bg: '#FDF5F5' }
+    };
+
+    function startChat(person) {
+        // Save current chat before switching
+        if (chatHistory.length > 0) saveChatHistory();
+
+        currentPerson = person;
+        const info = descs[person];
+
+        document.getElementById('header-avatar').textContent = info.avatar;
+        document.getElementById('header-name').textContent = info.name;
+        document.getElementById('header-desc').textContent = info.desc;
+        document.getElementById('welcome-icon').textContent = info.avatar;
+        document.getElementById('welcome-title').textContent = '你好，我是' + info.name;
+        document.getElementById('welcome-text').textContent = info.welcome;
+
+        const chipsContainer = document.getElementById('suggestion-chips');
+        chipsContainer.innerHTML = '';
+        suggestions[person].forEach(s => {
+            const btn = document.createElement('button');
+            btn.textContent = s;
+            btn.onclick = () => { document.getElementById('message-input').value = s; sendMessage(); };
+            chipsContainer.appendChild(btn);
+        });
+
+        document.getElementById('chat-screen').style.background = info.bg;
+        document.getElementById('send-btn').className = 'send-btn ' + (person === '谢胜子' ? 'xie' : 'ququ');
+        document.getElementById('selection-screen').style.display = 'none';
+        document.getElementById('chat-screen').classList.add('active');
+        // Hide default welcome msg when there's history
+        var hasHistory = loadChatHistory(person).length > 0;
+        document.getElementById('welcome-msg').style.display = hasHistory ? 'none' : 'block';
+
+        const countEl = document.getElementById('kb-count');
+        if (person === '谢胜子') {
+            countEl.textContent = (KNOWLEDGE_BASE['谢胜子'] || []).length + '条知识';
+        } else {
+            countEl.textContent = (KNOWLEDGE_BASE['曲曲'] || []).length + '条知识';
+        }
+
+        // Restore chat history for this person
+        renderChatHistory(person);
+
+        setTimeout(() => document.getElementById('message-input').focus(), 300);
+    }
+
+    function backToSelection() {
+        // Save chat history before leaving
+        if (chatHistory.length > 0) saveChatHistory();
+        document.getElementById('chat-screen').classList.remove('active');
+        document.getElementById('selection-screen').style.display = 'flex';
+        document.getElementById('chat-messages').innerHTML = `
+            <div class="welcome-msg" id="welcome-msg">
+                <span class="icon-big" id="welcome-icon">📚</span>
+                <h3 id="welcome-title">你好，我是谢胜子</h3>
+                <p id="welcome-text">把你的问题抛给我，我用方法论帮你拆解。</p>
+                <div class="suggestion-chips" id="suggestion-chips"></div>
+            </div>
+        `;
+    }
+
+    function addMessage(text, isUser) {
+        const messagesDiv = document.getElementById('chat-messages');
+        const welcome = document.getElementById('welcome-msg');
+        if (welcome) welcome.style.display = 'none';
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'msg ' + (isUser ? 'user' : 'ai');
+        if (!isUser && currentPerson === '曲曲') msgDiv.classList.add('ququ-mode');
+        if (isUser && currentPerson === '曲曲') msgDiv.classList.add('ququ-mode');
+
+        const avatarHtml = isUser ? '' : `<div class="avatar-sm">${descs[currentPerson].avatar}</div>`;
+        msgDiv.innerHTML = avatarHtml + `<div class="bubble">${text}</div>`;
+
+        const typing = document.getElementById('typing-indicator');
+        if (typing) {
+            messagesDiv.insertBefore(msgDiv, typing);
+        } else {
+            messagesDiv.appendChild(msgDiv);
+        }
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+        // Save to history
+        chatHistory.push({ text: text, isUser: isUser });
+        saveChatHistory();
+    }
+
+    function showTyping(text) {
+        const messagesDiv = document.getElementById('chat-messages');
+        const typing = document.createElement('div');
+        typing.className = 'msg ai';
+        typing.id = 'typing-indicator';
+        if (currentPerson === '曲曲') typing.classList.add('ququ-mode');
+        var inner = '<div class="avatar-sm">' + descs[currentPerson].avatar + '</div>';
+        if (text) {
+            inner += '<div class="bubble thinking">' + text + '<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span></div>';
+        } else {
+            inner += '<div class="typing"><div class="dots"><span></span><span></span><span></span></div></div>';
+        }
+        typing.innerHTML = inner;
+        messagesDiv.appendChild(typing);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function hideTyping() {
+        const typing = document.getElementById('typing-indicator');
+        if (typing) typing.remove();
+    }
+
+    function addRefChips(references) {
+        if (!references || references.length === 0) return;
+        const messagesDiv = document.getElementById('chat-messages');
+        const chipsDiv = document.createElement('div');
+        chipsDiv.className = 'ref-chips';
+        references.forEach(ref => {
+            const chip = document.createElement('span');
+            chip.className = 'ref-chip' + (currentPerson === '曲曲' ? ' ququ-mode' : '');
+            chip.textContent = ref.domain;
+            chipsDiv.appendChild(chip);
+        });
+        messagesDiv.appendChild(chipsDiv);
+    }
+
+    // ============================================================
+    // Chat History (localStorage)
+    // ============================================================
+    function saveChatHistory() {
+        try {
+            localStorage.setItem('chat_' + currentPerson, JSON.stringify(chatHistory));
+        } catch(e) {}
+    }
+
+    function loadChatHistory(person) {
+        try {
+            var saved = localStorage.getItem('chat_' + person);
+            return saved ? JSON.parse(saved) : [];
+        } catch(e) { return []; }
+    }
+
+    function renderChatHistory(person) {
+        var history = loadChatHistory(person);
+        chatHistory = history;
+        // Clear messages container
+        var container = document.getElementById('chat-messages');
+        var welcome = document.getElementById('welcome-msg');
+        if (welcome) welcome.style.display = 'none';
+        // Remove all msg divs
+        var msgs = container.querySelectorAll('.msg, .ref-chips');
+        msgs.forEach(function(m) { m.remove(); });
+        // Re-render each message
+        for (var i = 0; i < history.length; i++) {
+            var isUser = history[i].isUser;
+            var text = history[i].text;
+            var msgDiv = document.createElement('div');
+            msgDiv.className = 'msg ' + (isUser ? 'user' : 'ai');
+            if (currentPerson === '曲曲') msgDiv.classList.add('ququ-mode');
+            var avatarHtml = isUser ? '' : '<div class="avatar-sm">' + descs[currentPerson].avatar + '</div>';
+            msgDiv.innerHTML = avatarHtml + '<div class="bubble">' + text + '</div>';
+            container.appendChild(msgDiv);
+        }
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function clearChatHistory() {
+        if (!confirm('确定清空 ' + currentPerson + ' 的聊天记录吗？')) return;
+        chatHistory = [];
+        try { localStorage.removeItem('chat_' + currentPerson); } catch(e) {}
+        // Clear messages from DOM
+        var container = document.getElementById('chat-messages');
+        var msgs = container.querySelectorAll('.msg, .ref-chips');
+        msgs.forEach(function(m) { m.remove(); });
+        // Show welcome message
+        var welcome = document.getElementById('welcome-msg');
+        if (welcome) welcome.style.display = 'block';
+    }
+
+    // ============================================================
+    // Voice Input
+    // ============================================================
+    function startVoiceInput() {
+        var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SR) {
+            var micBtn = document.getElementById('mic-btn');
+            if (micBtn.classList.contains('recording')) return;
+            var recognition = new SR();
+            recognition.lang = 'zh-CN';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            micBtn.classList.add('recording');
+            micBtn.textContent = '⏺';
+            recognition.onresult = function(event) {
+                document.getElementById('message-input').value = event.results[0][0].transcript;
+            };
+            recognition.onerror = function() {
+                micBtn.classList.remove('recording');
+                micBtn.textContent = '🎤';
+                showMicHint('语音识别失败，请手动输入');
+            };
+            recognition.onend = function() {
+                micBtn.classList.remove('recording');
+                micBtn.textContent = '🎤';
+                var input = document.getElementById('message-input');
+                if (input.value.trim()) sendMessage();
+            };
+            try { recognition.start(); return; } catch(e) {}
+        }
+        // iOS fallback: show hint then focus input for keyboard dictation
+        showMicHint('请点击键盘底部麦克风按钮 🎤 进行语音输入');
+        var input = document.getElementById('message-input');
+        input.focus();
+        input.placeholder = '点击键盘上的麦克风按钮...';
+    }
+
+    function showMicHint(msg) {
+        var hint = document.getElementById('mic-hint');
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.id = 'mic-hint';
+            hint.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:999;max-width:80%;text-align:center;animation:fadeIn 0.3s;';
+            document.body.appendChild(hint);
+        }
+        hint.textContent = msg;
+        hint.style.display = 'block';
+        clearTimeout(hint._timer);
+        hint._timer = setTimeout(function() { hint.style.display = 'none'; }, 3500);
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('message-input');
+        const text = input.value.trim();
+        if (!text || isWaiting) return;
+
+        input.value = '';
+        isWaiting = true;
+        addMessage(text, true);
+        showTyping('思考中...');
+
+        // Try server-side LLM first, fall back to local search
+        // Send last 10 messages as conversation history for context
+        var historyForAPI = chatHistory.slice(-10);
+        fetch('/api/chat-llm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: text, person: currentPerson, history: historyForAPI })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            hideTyping();
+            addMessage(data.reply, false);
+            addRefChips(data.references || []);
+            isWaiting = false;
+        })
+        .catch(function() {
+            // Fallback: local search
+            setTimeout(function() {
+                const results = searchKnowledge(text, currentPerson, 5);
+                const formatted = formatReply(results, currentPerson);
+                hideTyping();
+                addMessage(formatted.reply, false);
+                addRefChips(formatted.references);
+                isWaiting = false;
+            }, 500);
+        });
+    }
+
+    document.getElementById('message-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    // Show counts on selection cards
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+            const xieCount = (KNOWLEDGE_BASE['谢胜子'] || []).length;
+            const ququCount = (KNOWLEDGE_BASE['曲曲'] || []).length;
+            document.querySelector('.card-xie .tag').textContent += ' · ' + xieCount + '条';
+            document.querySelector('.card-ququ .tag').textContent += ' · ' + ququCount + '条';
+        }, 100);
+    });
+</script>
+
+</body>
+</html>
