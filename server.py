@@ -520,6 +520,10 @@ if __name__ == '__main__':
     print(f'  手机访问: http://{local_ip}:{PORT}')
     print(f'  知识库: 谢胜子 {len(kb.get("谢胜子",[]))}条 + 曲曲 {len(kb.get("曲曲",[]))}条')
     print(f'  LLM 状态: {"已连接 DeepSeek" if has_key else "未配置 API Key（使用本地模式）"}')
+    # Debug: list all env var names (not values)
+    if not has_key:
+        env_names = [k for k in os.environ.keys() if not k.startswith('_')]
+        print(f'  [DEBUG] 环境变量列表: {env_names[:20]}')
     print(f'  防火墙已放行, 同一WiFi下可访问')
     print('=' * 55)
     print('  按 Ctrl+C 停止服务器')
