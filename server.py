@@ -356,6 +356,98 @@ class KnowledgeHandler(http.server.SimpleHTTPRequestHandler):
             })
             return
 
+        elif self.path == '/api/voice-chat':
+            """Receive voice recording → transcribe → DeepSeek → reply."""
+            length = int(self.headers['Content-Length'])
+            body = json.loads(self.rfile.read(length))
+            audio_b64 = body.get('audio', '')
+            person = body.get('person', '谢胜子')
+            history = body.get('history', [])
+
+            if not audio_b64:
+                self._send_json({'error': '没有收到音频数据', 'mode': 'error'})
+                return
+
+            import io
+            import base64
+
+            # Decode base64 WAV data
+            try:
+                wav_bytes = base64.b64decode(audio_b64)
+            except Exception as e:
+                self._send_json({'error': f'音频解码失败: {str(e)}', 'mode': 'error'})
+                return
+
+            # Transcribe using SpeechRecognition
+            transcribed_text = None
+            transcribe_error = None
+            try:
+                import speech_recognition as sr
+                r = sr.Recognizer()
+                with sr.AudioFile(io.BytesIO(wav_bytes)) as source:
+                    audio = r.record(source)
+                transcribed_text = r.recognize_google(audio, language='zh-CN')
+            except ImportError:
+                transcribe_error = '服务器缺少 SpeechRecognition 库'
+            except Exception as e:
+                transcribe_error = f'语音识别失败: {str(e)}'
+
+            if not transcribed_text:
+                self._send_json({
+                    'error': transcribe_error or '无法识别语音内容',
+                    'transcribed': '',
+                    'reply': '',
+                    'mode': 'error'
+                })
+                return
+
+            # If no API key, still return transcribed text at least
+            if not DEEPSEEK_API_KEY:
+                self._send_json({
+                    'transcribed': transcribed_text,
+                    'reply': f'（已识别：{transcribed_text}）\n\n抱歉，AI未配置，无法生成回复。',
+                    'mode': 'noai'
+                })
+                return
+
+            # Send transcribed text to DeepSeek
+            results = search_knowledge(transcribed_text, person=person, top_k=10)
+            context = build_persona_context(results, person)
+            system_prompt = build_prompt(transcribed_text, context, person)
+            reply, error = call_deepseek(system_prompt, transcribed_text, history=history)
+
+            if error:
+                # Fallback to local formatting
+                if person == '谢胜子':
+                    reply, refs = self._format_xie_shengzi(results)
+                else:
+                    reply, refs = self._format_ququ(results)
+                self._send_json({
+                    'transcribed': transcribed_text,
+                    'reply': reply,
+                    'references': refs,
+                    'mode': 'local',
+                    'error': error
+                })
+                return
+
+            # Build references
+            refs = []
+            seen = set()
+            for _, entry, _ in results:
+                d = entry.get('domain', '')
+                if d not in seen:
+                    seen.add(d)
+                    refs.append({'domain': d, 'heading': entry.get('heading', '')})
+
+            self._send_json({
+                'transcribed': transcribed_text,
+                'reply': reply,
+                'references': refs,
+                'mode': 'llm'
+            })
+            return
+
         self.send_response(404)
         self.end_headers()
 
