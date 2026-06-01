@@ -25,7 +25,7 @@ with open(os.path.join(BASE_DIR, 'knowledge.json'), 'r', encoding='utf-8') as f:
 with open(os.path.join(BASE_DIR, 'standalone.html'), 'r', encoding='utf-8') as f:
     html_content = f.read()
 
-# DeepSeek API key - try env var first, then .env file
+# DeepSeek API key - try env var first, then .env file, then hardcoded fallback
 DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY', '')
 if not DEEPSEEK_API_KEY:
     env_path = os.path.join(BASE_DIR, '.env')
@@ -36,6 +36,9 @@ if not DEEPSEEK_API_KEY:
                 if line.startswith('DEEPSEEK_API_KEY='):
                     DEEPSEEK_API_KEY = line.split('=', 1)[1].strip().strip('"').strip("'")
                     break
+if not DEEPSEEK_API_KEY:
+    # Hardcoded fallback for deployment (personal project)
+    DEEPSEEK_API_KEY = 'sk-e517b29b76cc4de18761475dde2ef698'
 
 
 # ============================================================
