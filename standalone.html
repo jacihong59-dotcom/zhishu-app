@@ -38,12 +38,15 @@
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            height: 100%;
-            padding: 20px 20px;
+            height: 100vh;
+            height: -webkit-fill-available;
+            padding: 16px 20px 24px;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             background: linear-gradient(180deg, #F5F0EB 0%, #EDE5DC 100%);
         }
+        html, body { height: 100%; min-height: 100vh; margin: 0; padding: 0; }
+        body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
         #selection-screen .logo-area {
             margin-bottom: 40px;
             text-align: center;
@@ -5325,6 +5328,20 @@ function formatReply(results, person) {
             '怎样向上社交？',
             '如何避免被白嫖？',
             '男朋友抠门怎么办？'
+        ],
+        '小江': [
+            '帮我看看这篇稿子',
+            '这个选题怎么样？',
+            '帮我想个爆款标题',
+            '怎么写开头钩子？',
+            '我的笔记数据不好怎么办？'
+        ],
+        '发疯老子': [
+            '帮我分析这篇稿子',
+            '我的号为什么起不来？',
+            '这个选题能火吗？',
+            '文案怎么写才有结构？',
+            '自检清单帮我过一遍'
         ]
     };
     const descs = {
@@ -5376,11 +5393,8 @@ function formatReply(results, person) {
         document.getElementById('welcome-msg').style.display = hasHistory ? 'none' : 'block';
 
         const countEl = document.getElementById('kb-count');
-        if (person === '谢胜子') {
-            countEl.textContent = (KNOWLEDGE_BASE['谢胜子'] || []).length + '条知识';
-        } else {
-            countEl.textContent = (KNOWLEDGE_BASE['曲曲'] || []).length + '条知识';
-        }
+        var kbCount = (KNOWLEDGE_BASE[person] || []).length;
+        countEl.textContent = kbCount > 0 ? kbCount + '条知识' : '';
 
         // Restore chat history for this person
         renderChatHistory(person);
