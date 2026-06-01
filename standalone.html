@@ -13,6 +13,10 @@
             --ququ-primary: #C43A3A;
             --ququ-bg: #FDF5F5;
             --ququ-light: #FCE8E8;
+            --xiaojiang-primary: #2EAF9E;
+            --xiaojiang-light: #E0F7F5;
+            --fafeng-primary: #8B5CF6;
+            --fafeng-light: #F3EEFF;
             --text: #2D2D2D;
             --text-light: #888;
             --border: #E8E0D8;
@@ -33,9 +37,11 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             height: 100%;
-            padding: 30px;
+            padding: 20px 20px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             background: linear-gradient(180deg, #F5F0EB 0%, #EDE5DC 100%);
         }
         #selection-screen .logo-area {
@@ -124,6 +130,8 @@
         }
         .avatar-xie { background: var(--xie-light); }
         .avatar-ququ { background: var(--ququ-light); }
+        .avatar-xiaojiang { background: var(--xiaojiang-light); }
+        .avatar-fafeng { background: var(--fafeng-light); }
         .avatar-xiaojiang { background: #E0F7F5; }
         .avatar-fafeng { background: #F3EEFF; }
         .chat-header .info { flex: 1; }
@@ -197,6 +205,8 @@
         }
         .msg.ai .avatar-sm { background: var(--xie-light); }
         .msg.ai.ququ-mode .avatar-sm { background: var(--ququ-light); }
+        .msg.ai.xiaojiang-mode .avatar-sm { background: var(--xiaojiang-light); }
+        .msg.ai.fafeng-mode .avatar-sm { background: var(--fafeng-light); }
 
         /* Reference chips */
         .ref-chips {
@@ -211,6 +221,10 @@
             color: var(--xie-primary);
         }
         .ref-chip.ququ-mode { background: var(--ququ-light); color: var(--ququ-primary); }
+        .ref-chip.xiaojiang-mode { background: var(--xiaojiang-light); color: var(--xiaojiang-primary); }
+        .ref-chip.fafeng-mode { background: var(--fafeng-light); color: var(--fafeng-primary); }
+        .thinking.xiaojiang-mode { background: var(--xiaojiang-light); }
+        .thinking.fafeng-mode { background: var(--fafeng-light); }
 
         /* Typing indicator */
         .typing {
@@ -5395,9 +5409,9 @@ function formatReply(results, person) {
         if (welcome) welcome.style.display = 'none';
 
         const msgDiv = document.createElement('div');
+        var mode = getModeClass(currentPerson);
         msgDiv.className = 'msg ' + (isUser ? 'user' : 'ai');
-        if (!isUser && currentPerson === '曲曲') msgDiv.classList.add('ququ-mode');
-        if (isUser && currentPerson === '曲曲') msgDiv.classList.add('ququ-mode');
+        if (mode) msgDiv.classList.add(mode);
 
         const avatarHtml = isUser ? '' : `<div class="avatar-sm">${descs[currentPerson].avatar}</div>`;
         msgDiv.innerHTML = avatarHtml + `<div class="bubble">${text}</div>`;
@@ -5420,7 +5434,8 @@ function formatReply(results, person) {
         const typing = document.createElement('div');
         typing.className = 'msg ai';
         typing.id = 'typing-indicator';
-        if (currentPerson === '曲曲') typing.classList.add('ququ-mode');
+        var mode = getModeClass(currentPerson);
+        if (mode) typing.classList.add(mode);
         var inner = '<div class="avatar-sm">' + descs[currentPerson].avatar + '</div>';
         if (text) {
             inner += '<div class="bubble thinking">' + text + '<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span></div>';
@@ -5444,7 +5459,11 @@ function formatReply(results, person) {
         chipsDiv.className = 'ref-chips';
         references.forEach(ref => {
             const chip = document.createElement('span');
-            chip.className = 'ref-chip' + (currentPerson === '曲曲' ? ' ququ-mode' : '');
+            var modeClass = '';
+            if (currentPerson === '曲曲') modeClass = ' ququ-mode';
+            else if (currentPerson === '小江') modeClass = ' xiaojiang-mode';
+            else if (currentPerson === '发疯老子') modeClass = ' fafeng-mode';
+            chip.className = 'ref-chip' + modeClass;
             chip.textContent = ref.domain;
             chipsDiv.appendChild(chip);
         });
@@ -5467,24 +5486,29 @@ function formatReply(results, person) {
         } catch(e) { return []; }
     }
 
+    function getModeClass(person) {
+        if (person === '曲曲') return 'ququ-mode';
+        if (person === '小江') return 'xiaojiang-mode';
+        if (person === '发疯老子') return 'fafeng-mode';
+        return '';
+    }
+
     function renderChatHistory(person) {
         var history = loadChatHistory(person);
         chatHistory = history;
-        // Clear messages container
         var container = document.getElementById('chat-messages');
         var welcome = document.getElementById('welcome-msg');
         if (welcome) welcome.style.display = 'none';
-        // Remove all msg divs
         var msgs = container.querySelectorAll('.msg, .ref-chips');
         msgs.forEach(function(m) { m.remove(); });
-        // Re-render each message
+        var mode = getModeClass(person);
         for (var i = 0; i < history.length; i++) {
             var isUser = history[i].isUser;
             var text = history[i].text;
             var msgDiv = document.createElement('div');
             msgDiv.className = 'msg ' + (isUser ? 'user' : 'ai');
-            if (currentPerson === '曲曲') msgDiv.classList.add('ququ-mode');
-            var avatarHtml = isUser ? '' : '<div class="avatar-sm">' + descs[currentPerson].avatar + '</div>';
+            if (mode) msgDiv.classList.add(mode);
+            var avatarHtml = isUser ? '' : '<div class="avatar-sm">' + descs[person].avatar + '</div>';
             msgDiv.innerHTML = avatarHtml + '<div class="bubble">' + text + '</div>';
             container.appendChild(msgDiv);
         }
