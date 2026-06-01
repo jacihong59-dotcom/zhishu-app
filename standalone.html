@@ -36,8 +36,7 @@
         #selection-screen {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            padding: 12px 16px 30px;
+            padding: 30px 20px 40px;
             background: linear-gradient(180deg, #F5F0EB 0%, #EDE5DC 100%);
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             overflow-y: auto;
@@ -45,47 +44,57 @@
         }
         html, body { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; }
         #selection-screen .logo-area {
-            margin-bottom: 20px;
-            text-align: center;
+            margin-bottom: 24px;
+            text-align: left;
+            padding: 0 4px;
         }
         #selection-screen .logo-area h1 {
-            font-size: 22px;
+            font-size: 26px;
             font-weight: 700;
             color: var(--text);
-            letter-spacing: 2px;
         }
         #selection-screen .logo-area p {
             font-size: 14px;
             color: var(--text-light);
-            margin-top: 8px;
+            margin-top: 4px;
         }
         .character-card {
             width: 100%;
-            max-width: 340px;
-            padding: 20px 20px;
-            margin-bottom: 12px;
-            border-radius: 20px;
+            padding: 18px 20px;
+            margin-bottom: 10px;
+            border-radius: 16px;
             background: white;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: var(--shadow);
-            position: relative;
-            overflow: hidden;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            display: flex;
+            align-items: center;
+            gap: 16px;
         }
-        .character-card:active { transform: scale(0.97); }
+        .character-card:active { transform: scale(0.98); }
         .character-card .emoji-badge {
-            font-size: 40px;
-            display: block;
-            margin-bottom: 10px;
+            font-size: 32px;
+            flex-shrink: 0;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 14px;
         }
-        .character-card h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-        .character-card p { font-size: 13px; color: var(--text-light); line-height: 1.5; }
+        .card-xie .emoji-badge { background: var(--xie-light); }
+        .card-ququ .emoji-badge { background: var(--ququ-light); }
+        .card-xiaojiang .emoji-badge { background: var(--xiaojiang-light); }
+        .card-fafeng .emoji-badge { background: var(--fafeng-light); }
+        .character-card .card-info { flex: 1; min-width: 0; }
+        .character-card h2 { font-size: 17px; font-weight: 700; margin: 0 0 2px 0; }
+        .character-card .desc { font-size: 12px; color: var(--text-light); margin: 0; line-height: 1.4; }
         .character-card .tag {
             display: inline-block;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            margin-top: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-top: 6px;
         }
         .card-xie { border-left: 5px solid var(--xie-primary); }
         .card-xie .tag { background: var(--xie-light); color: var(--xie-primary); }
@@ -97,7 +106,7 @@
         .card-fafeng .tag { background: #F3EEFF; color: #8B5CF6; }
 
         /* ===== CHAT SCREEN ===== */
-        #chat-screen { display: none; height: 100%; flex-direction: column; }
+        #chat-screen { display: none; flex-direction: column; position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
         #chat-screen.active { display: flex; }
 
         /* Header */
@@ -552,33 +561,41 @@
     </div>
 
     <div class="character-card card-xie" onclick="startChat('谢胜子')">
-        <span class="emoji-badge">📚</span>
-        <h2>谢胜子</h2>
-        <p>自媒体创业 · 个人IP · 平台策略<br>犀利拆解，框架式思考</p>
-        <span class="tag">结构化 · 方法论</span>
+        <div class="emoji-badge">📚</div>
+        <div class="card-info">
+            <h2>谢胜子</h2>
+            <p class="desc">个人IP · 自媒体创业 · 赛道定位</p>
+            <span class="tag">认知体系 · 77条</span>
+        </div>
     </div>
 
     <div class="character-card card-ququ" onclick="startChat('曲曲')">
-        <span class="emoji-badge">🔥</span>
-        <h2>曲曲大女人</h2>
-        <p>两性关系 · 人性博弈 · 向上社交<br>直击灵魂，叫醒你</p>
-        <span class="tag">人间清醒 · 扎心真相</span>
+        <div class="emoji-badge">🔥</div>
+        <div class="card-info">
+            <h2>曲曲大女人</h2>
+            <p class="desc">两性关系 · 人性博弈 · 向上社交</p>
+            <span class="tag">关系认知 · 73条</span>
+        </div>
     </div>
-</div>
+
     <div class="character-card card-xiaojiang" onclick="startChat('小江')">
-        <span class="emoji-badge">✍️</span>
-        <h2>小江</h2>
-        <p class="tag">爆款方法论 · 小红书</p>
-        <p class="desc">爆款公式+写作模板，帮你写出爆款笔记</p>
+        <div class="emoji-badge">✍️</div>
+        <div class="card-info">
+            <h2>小江</h2>
+            <p class="desc">爆款方法论 · 写作模板 · 选题策略</p>
+            <span class="tag">内容创作 · 8条</span>
+        </div>
     </div>
 
     <div class="character-card card-fafeng" onclick="startChat('发疯老子')">
-        <span class="emoji-badge">🚀</span>
-        <h2>发疯老子</h2>
-        <p class="tag">运营策略 · 起号思路</p>
-        <p class="desc">数据漏斗+文案结构，从零做小红书</p>
+        <div class="emoji-badge">🚀</div>
+        <div class="card-info">
+            <h2>发疯老子</h2>
+            <p class="desc">运营策略 · 起号SOP · 数据分析</p>
+            <span class="tag">运营方法论 · 8条</span>
+        </div>
     </div>
-
+</div>
 <!-- ===== CHAT SCREEN ===== -->
 <div id="chat-screen">
     <div class="chat-header">
