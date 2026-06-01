@@ -215,13 +215,14 @@ def call_deepseek(system_prompt, user_query, history=None, image=''):
 
     # Build user message: text-only or multimodal (text + image)
     if image:
-        # DeepSeek V4 supports OpenAI-compatible multimodal format
-        user_content = [{'type': 'text', 'text': user_query or '请分析这张图片'}]
-        user_content.append({
-            'type': 'image_url',
-            'image_url': {'url': image}  # image is already a base64 data URL
-        })
-        messages.append({'role': 'user', 'content': user_content})
+        # DeepSeek V4 uses separate fields, not OpenAI's content array format
+        # Strip data URL prefix, send raw base64 as image_data field
+        if ',' in image:
+            image_b64 = image.split(',', 1)[1]
+        else:
+            image_b64 = image
+        user_msg = {'role': 'user', 'content': user_query or '请分析这张图片', 'image_data': image_b64}
+        messages.append(user_msg)
         model = 'deepseek-v4-pro'
     else:
         messages.append({'role': 'user', 'content': user_query})
