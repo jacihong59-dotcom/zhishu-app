@@ -85,6 +85,10 @@
         .card-xie .tag { background: var(--xie-light); color: var(--xie-primary); }
         .card-ququ { border-left: 5px solid var(--ququ-primary); }
         .card-ququ .tag { background: var(--ququ-light); color: var(--ququ-primary); }
+        .card-xiaojiang { border-left: 5px solid #4ECDC4; }
+        .card-xiaojiang .tag { background: #E0F7F5; color: #2EAF9E; }
+        .card-fafeng { border-left: 5px solid #A78BFA; }
+        .card-fafeng .tag { background: #F3EEFF; color: #8B5CF6; }
 
         /* ===== CHAT SCREEN ===== */
         #chat-screen { display: none; height: 100%; flex-direction: column; }
@@ -120,6 +124,8 @@
         }
         .avatar-xie { background: var(--xie-light); }
         .avatar-ququ { background: var(--ququ-light); }
+        .avatar-xiaojiang { background: #E0F7F5; }
+        .avatar-fafeng { background: #F3EEFF; }
         .chat-header .info { flex: 1; }
         .chat-header .info h3 { font-size: 16px; font-weight: 600; }
         .chat-header .info p { font-size: 11px; color: var(--text-light); }
@@ -289,6 +295,8 @@
         .chat-input .send-btn:active { transform: scale(0.9); }
         .send-btn.xie { background: var(--xie-primary); color: white; }
         .send-btn.ququ { background: var(--ququ-primary); color: white; }
+        .send-btn.xiaojiang { background: #4ECDC4; color: white; }
+        .send-btn.fafeng { background: #A78BFA; color: white; }
 
         .chat-input .mic-btn {
             width: 38px; height: 38px;
@@ -543,6 +551,19 @@
         <span class="tag">人间清醒 · 扎心真相</span>
     </div>
 </div>
+    <div class="character-card card-xiaojiang" onclick="startChat('小江')">
+        <span class="emoji-badge">✍️</span>
+        <h2>小江</h2>
+        <p class="tag">爆款方法论 · 小红书</p>
+        <p class="desc">爆款公式+写作模板，帮你写出爆款笔记</p>
+    </div>
+
+    <div class="character-card card-fafeng" onclick="startChat('发疯老子')">
+        <span class="emoji-badge">🚀</span>
+        <h2>发疯老子</h2>
+        <p class="tag">运营策略 · 起号思路</p>
+        <p class="desc">数据漏斗+文案结构，从零做小红书</p>
+    </div>
 
 <!-- ===== CHAT SCREEN ===== -->
 <div id="chat-screen">
@@ -5298,7 +5319,13 @@ function formatReply(results, person) {
             bg: '#FDF8F3' },
         '曲曲': { avatar: '🔥', name: '曲曲大女人', desc: '两性关系 · 人性博弈 · 向上社交',
             welcome: '有啥问题直接说，别绕弯子。我说话不好听，但有用。',
-            bg: '#FDF5F5' }
+            bg: '#FDF5F5' },
+        '小江': { avatar: '✍️', name: '小江', desc: '爆款方法论 · 小红书 · 内容创作',
+            welcome: '把你的稿子或选题甩给我，我用方法论帮你分析优化。',
+            bg: '#F0FFFA' },
+        '发疯老子': { avatar: '🚀', name: '发疯老子', desc: '运营策略 · 起号思路 · 数据分析',
+            welcome: '有稿子直接发我，我帮你从数据和用户思维角度分析。',
+            bg: '#F8F5FF' }
     };
 
     function startChat(person) {
@@ -5309,6 +5336,8 @@ function formatReply(results, person) {
         const info = descs[person];
 
         document.getElementById('header-avatar').textContent = info.avatar;
+            document.getElementById('header-avatar').className = 'avatar avatar-' + (currentPerson === '谢胜子' ? 'xie' : currentPerson === '曲曲' ? 'ququ' : currentPerson === '小江' ? 'xiaojiang' : 'fafeng');
+            document.getElementById('send-btn').className = 'send-btn ' + (currentPerson === '谢胜子' ? 'xie' : currentPerson === '曲曲' ? 'ququ' : 'xiaojiang');
         document.getElementById('header-name').textContent = info.name;
         document.getElementById('header-desc').textContent = info.desc;
         document.getElementById('welcome-icon').textContent = info.avatar;
@@ -5325,7 +5354,7 @@ function formatReply(results, person) {
         });
 
         document.getElementById('chat-screen').style.background = info.bg;
-        document.getElementById('send-btn').className = 'send-btn ' + (person === '谢胜子' ? 'xie' : 'ququ');
+        document.getElementById('send-btn').className = 'send-btn ' + (person === '谢胜子' ? 'xie' : person === '曲曲' ? 'ququ' : 'xiaojiang');
         document.getElementById('selection-screen').style.display = 'none';
         document.getElementById('chat-screen').classList.add('active');
         // Hide default welcome msg when there's history
