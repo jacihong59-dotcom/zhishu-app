@@ -361,6 +361,7 @@ class KnowledgeHandler(http.server.SimpleHTTPRequestHandler):
             length = int(self.headers['Content-Length'])
             body = json.loads(self.rfile.read(length))
             audio_b64 = body.get('audio', '')
+            mime_type = body.get('mimeType', 'audio/wav')
             person = body.get('person', '谢胜子')
             history = body.get('history', [])
 
@@ -368,12 +369,11 @@ class KnowledgeHandler(http.server.SimpleHTTPRequestHandler):
                 self._send_json({'error': '没有收到音频数据', 'mode': 'error'})
                 return
 
-            import io
-            import base64
+            import io, base64, tempfile, os
 
-            # Decode base64 WAV data
+            # Decode base64 audio data
             try:
-                wav_bytes = base64.b64decode(audio_b64)
+                audio_bytes = base64.b64decode(audio_b64)
             except Exception as e:
                 self._send_json({'error': f'音频解码失败: {str(e)}', 'mode': 'error'})
                 return
@@ -384,13 +384,36 @@ class KnowledgeHandler(http.server.SimpleHTTPRequestHandler):
             try:
                 import speech_recognition as sr
                 r = sr.Recognizer()
-                with sr.AudioFile(io.BytesIO(wav_bytes)) as source:
-                    audio = r.record(source)
+
+                # If it's a WAV, read directly. Otherwise convert via pydub.
+                if 'wav' in mime_type or 'x-wav' in mime_type:
+                    with sr.AudioFile(io.BytesIO(audio_bytes)) as source:
+                        audio = r.record(source)
+                else:
+                    # Convert webm/mp4 to WAV using pydub (requires ffmpeg)
+                    try:
+                        from pydub import AudioSegment
+                    except ImportError:
+                        transcribe_error = '服务器缺少 pydub 库'
+                        raise Exception(transcribe_error)
+                    fmt = 'webm' if 'webm' in mime_type else 'mp4'
+                    try:
+                        seg = AudioSegment.from_file(io.BytesIO(audio_bytes), format=fmt)
+                        wav_io = io.BytesIO()
+                        seg.export(wav_io, format='wav')
+                        wav_io.seek(0)
+                        with sr.AudioFile(wav_io) as source:
+                            audio = r.record(source)
+                    except Exception as conv_err:
+                        transcribe_error = f'音频转换失败: {str(conv_err)}'
+                        raise Exception(transcribe_error)
+
                 transcribed_text = r.recognize_google(audio, language='zh-CN')
             except ImportError:
                 transcribe_error = '服务器缺少 SpeechRecognition 库'
             except Exception as e:
-                transcribe_error = f'语音识别失败: {str(e)}'
+                if not transcribe_error:
+                    transcribe_error = f'语音识别失败: {str(e)}'
 
             if not transcribed_text:
                 self._send_json({

@@ -5455,39 +5455,38 @@ function formatReply(results, person) {
     var audioContext = null;
     var audioStream = null;
 
-    // Encode Float32 audio data as WAV
+    // Encode Float32 audio data as WAV (standard PCM format)
     function encodeWav(samples, sampleRate) {
-        var numChannels = 1;
-        var bitsPerSample = 16;
-        var byteRate = sampleRate * numChannels * bitsPerSample / 8;
-        var blockAlign = numChannels * bitsPerSample / 8;
-        var dataSize = samples.length * numChannels * bitsPerSample / 8;
+        var numChannels = 1, bitsPerSample = 16;
+        var bytesPerSample = bitsPerSample / 8;
+        var blockAlign = numChannels * bytesPerSample;
+        var byteRate = sampleRate * blockAlign;
+        var dataSize = samples.length * bytesPerSample;
         var buffer = new ArrayBuffer(44 + dataSize);
         var view = new DataView(buffer);
 
-        function writeString(offset, str) {
+        function w(offset, str) {
             for (var i = 0; i < str.length; i++)
                 view.setUint8(offset + i, str.charCodeAt(i));
         }
-
-        writeString(0, 'RIFF');
+        w(0, 'RIFF');
         view.setUint32(4, 36 + dataSize, true);
-        writeString(8, 'WAVE');
-        writeString(12, 'fmt ');
+        w(8, 'WAVE');
+        w(12, 'fmt ');
         view.setUint32(16, 16, true);
-        view.setUint16(20, 1, true); // PCM
+        view.setUint16(20, 1, true);        // PCM
         view.setUint16(22, numChannels, true);
         view.setUint32(24, sampleRate, true);
         view.setUint32(28, byteRate, true);
         view.setUint16(32, blockAlign, true);
         view.setUint16(34, bitsPerSample, true);
-        writeString(36, 'data');
+        w(36, 'data');
         view.setUint32(40, dataSize, true);
 
         var offset = 44;
         for (var i = 0; i < samples.length; i++) {
             var s = Math.max(-1, Math.min(1, samples[i]));
-            s = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            s = (s < 0 ? s * 0x8000 : s * 0x7FFF) | 0;
             view.setInt16(offset, s, true);
             offset += 2;
         }
@@ -5517,27 +5516,25 @@ function formatReply(results, person) {
             document.getElementById('rp-timer').textContent = m + ':' + s;
         }, 100);
 
-        // Request mic access and start recording
+        // Request mic access and start recording via MediaRecorder
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(function(stream) {
                 audioStream = stream;
-                var AudioCtx = window.AudioContext || window.webkitAudioContext;
-                audioContext = new AudioCtx();
-                var source = audioContext.createMediaStreamSource(stream);
-                var processor = audioContext.createScriptProcessor(4096, 1, 1);
-                var recordedSamples = [];
-
-                processor.onaudioprocess = function(e) {
-                    var input = e.inputBuffer.getChannelData(0);
-                    // Copy samples
-                    var chunk = new Float32Array(input.length);
-                    chunk.set(input);
-                    recordedSamples.push(chunk);
-                    audioChunks = recordedSamples;
+                // Prefer webm/opus, fallback to whatever browser supports
+                var options = {};
+                if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                    options = { mimeType: 'audio/webm;codecs=opus' };
+                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                    options = { mimeType: 'audio/mp4' };
+                } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+                    options = { mimeType: 'audio/webm' };
+                }
+                mediaRecorder = new MediaRecorder(stream, options);
+                audioChunks = [];
+                mediaRecorder.ondataavailable = function(e) {
+                    if (e.data.size > 0) audioChunks.push(e.data);
                 };
-
-                source.connect(processor);
-                processor.connect(audioContext.destination);
+                mediaRecorder.start(100); // collect data every 100ms
                 isRecording = true;
             })
             .catch(function(err) {
@@ -5555,17 +5552,17 @@ function formatReply(results, person) {
         document.getElementById('mic-btn').classList.remove('recording');
         document.getElementById('mic-btn').textContent = '🎤';
 
-        // Clean up audio
-        if (audioContext) {
-            audioContext.close().catch(function(){});
-            audioContext = null;
+        // Stop MediaRecorder first
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
         }
+        // Clean up stream
         if (audioStream) {
             audioStream.getTracks().forEach(function(t) { t.stop(); });
             audioStream = null;
         }
 
-        // Don't process if cancelled or too short
+        // Don't process if cancelled or too short or no data
         if (cancelled || shouldCancel || audioChunks.length === 0) return;
 
         var elapsed = (Date.now() - recordingStartTime) / 1000;
@@ -5577,25 +5574,14 @@ function formatReply(results, person) {
         // Show "transcribing" indicator
         showTyping('识别语音中...');
 
-        // Combine all samples into one array
-        var totalLen = 0;
-        for (var i = 0; i < audioChunks.length; i++)
-            totalLen += audioChunks[i].length;
-        var allSamples = new Float32Array(totalLen);
-        var offset = 0;
-        for (var i = 0; i < audioChunks.length; i++) {
-            allSamples.set(audioChunks[i], offset);
-            offset += audioChunks[i].length;
-        }
-
-        // Encode as WAV
-        var wavBuffer = encodeWav(allSamples, audioContext ? audioContext.sampleRate : 16000);
-        var wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+        // Combine chunks into a single blob
+        var audioBlob = new Blob(audioChunks, { type: mediaRecorder ? mediaRecorder.mimeType : 'audio/webm' });
 
         // Convert to base64
         var reader = new FileReader();
         reader.onloadend = function() {
             var base64Audio = reader.result.split(',')[1];
+            var mimeType = audioBlob.type;
 
             // Send to server
             var historyForAPI = chatHistory.slice(-10);
@@ -5604,6 +5590,7 @@ function formatReply(results, person) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     audio: base64Audio,
+                    mimeType: mimeType,
                     person: currentPerson,
                     history: historyForAPI
                 })
@@ -5615,18 +5602,16 @@ function formatReply(results, person) {
                     addMessage('🎤 语音识别失败: ' + (data.error || '未知错误'), false);
                     return;
                 }
-                // Show transcribed text as user message
                 addMessage('🎤 ' + data.transcribed, true);
-                // Show AI reply
                 addMessage(data.reply, false);
                 if (data.references) addRefChips(data.references);
             })
             .catch(function() {
                 hideTyping();
-                addMessage('🎤 ' + '语音处理出错，请稍后再试', false);
+                addMessage('🎤 语音处理出错，请稍后再试', false);
             });
         };
-        reader.readAsDataURL(wavBlob);
+        reader.readAsDataURL(audioBlob);
     }
 
     // Wire up press-and-hold mic button
